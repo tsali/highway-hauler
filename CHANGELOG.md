@@ -18,5 +18,9 @@
 - Geography trivia at rest stops for bonus cash
 - Weather events: rain, snow, fog (affect speed/fuel)
 - Weigh station random inspections
+- Lot lizard encounters at truck stops (robbery, STD, bonus outcomes)
+- Highway gang encounters on desert stretches (I-10, I-15, I-40, I-8)
+- Fight or flee mechanics for gang encounters
+- Contract bonus modifier from encounters
 - BBS rlogin bridge for Mystic BBS integration
 - systemd services for auto-start
