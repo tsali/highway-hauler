@@ -71,6 +71,74 @@ TRUCK_UPGRADES = {
 }
 
 
+# Achievement definitions
+ACHIEVEMENTS = {
+    # Milestone achievements
+    "first_delivery": {"name": "First Haul", "desc": "Complete your first delivery"},
+    "ten_deliveries": {"name": "Road Regular", "desc": "Complete 10 deliveries"},
+    "fifty_deliveries": {"name": "Highway Veteran", "desc": "Complete 50 deliveries"},
+    "hundred_deliveries": {"name": "Road Warrior", "desc": "Complete 100 deliveries"},
+    "thousand_miles": {"name": "Thousand Miler", "desc": "Drive 1,000 miles"},
+    "ten_thousand_miles": {"name": "Cross-Country", "desc": "Drive 10,000 miles"},
+    "fifty_thousand_miles": {"name": "Iron Horse", "desc": "Drive 50,000 miles"},
+    "hundred_thousand_miles": {"name": "Million Miler", "desc": "Drive 100,000 miles"},
+    # Money achievements
+    "first_grand": {"name": "First Grand", "desc": "Earn $1,000 in a single delivery"},
+    "five_grand": {"name": "Big Payday", "desc": "Earn $5,000 in a single delivery"},
+    "ten_grand": {"name": "Whale Haul", "desc": "Earn $10,000 in a single delivery"},
+    "rich_trucker": {"name": "Six Figures", "desc": "Have $100,000 in the bank"},
+    # Cargo achievements
+    "heavy_hauler": {"name": "Heavy Hauler", "desc": "Deliver a load over 40,000 lbs"},
+    "max_weight": {"name": "Maxed Out", "desc": "Deliver a load over 55,000 lbs"},
+    "hazmat_hauler": {"name": "Hazmat Handler", "desc": "Deliver 5 hazmat loads"},
+    "medical_runner": {"name": "Mercy Run", "desc": "Deliver 5 medical supply loads"},
+    "livestock_wrangler": {"name": "Cattle Drive", "desc": "Deliver 5 livestock loads"},
+    # Driving achievements
+    "speed_demon": {"name": "Speed Demon", "desc": "Drive at 85 mph"},
+    "fuel_miser": {"name": "Fuel Miser", "desc": "Drive 500 miles at 55 mph or under"},
+    "perfect_ten": {"name": "Perfect Ten", "desc": "10 deliveries in a row on time"},
+    "night_owl": {"name": "Night Owl", "desc": "Drive 12+ hours in a single stretch"},
+    "iron_bladder": {"name": "Iron Bladder", "desc": "Drive 500 miles without a restroom break"},
+    # Encounter achievements
+    "bear_bait": {"name": "Bear Bait", "desc": "Get pulled over 5 times"},
+    "lot_lizard_survivor": {"name": "Lot Lizard Survivor", "desc": "Survive a lot lizard robbery"},
+    "gang_fighter": {"name": "Highwayman", "desc": "Fight off a highway gang"},
+    "clean_record": {"name": "Clean Record", "desc": "50 deliveries with 0 weigh violations"},
+    # Truck achievements
+    "fully_upgraded": {"name": "Chrome & Custom", "desc": "Max out all truck upgrades"},
+    "breakdown_survivor": {"name": "Duct Tape & Prayers", "desc": "Drive on with truck health under 20%"},
+    # Social
+    "board_poster": {"name": "Trucker Poet", "desc": "Post 10 messages on city boards"},
+    "cb_chatter": {"name": "Breaker Breaker", "desc": "Send 50 CB messages"},
+}
+
+
+def grant_achievement(trucker, key):
+    """Grant an achievement if not already earned. Returns True if newly granted.
+    Announces via CB as Saint Christopher (patron saint of travelers)."""
+    achievements = trucker.db.achievements or []
+    if key in achievements:
+        return False
+    if key not in ACHIEVEMENTS:
+        return False
+    achievements.append(key)
+    trucker.db.achievements = achievements
+    ach = ACHIEVEMENTS[key]
+    handle = trucker.db.handle or trucker.key
+    trucker.msg("")
+    trucker.msg(f"|y*** ACHIEVEMENT UNLOCKED: {ach['name']} ***|n")
+    trucker.msg(f"|w{ach['desc']}|n")
+    trucker.msg("")
+    # Broadcast to all truckers via CB as Saint Christopher
+    try:
+        for t in trucker.__class__.objects.all():
+            if t != trucker and t.db.chargen_complete:
+                t.msg(f"|y[CB] Saint Christopher: \"{handle} has earned '{ach['name']}' — {ach['desc']}. Safe travels, driver.\"|n")
+    except Exception:
+        pass
+    return True
+
+
 class Trucker(ObjectParent, DefaultCharacter):
     """
     The Trucker typeclass for player characters.
@@ -144,6 +212,13 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.biggest_haul_weight = 0    # heaviest single delivery (lbs)
         self.db.biggest_haul_income = 0    # highest single delivery payout ($)
         self.db.total_income = 0           # lifetime earnings
+        # Truck health (100=pristine, 0=breakdown)
+        self.db.truck_health = 100
+        self.db.tire_condition = 100       # wears faster on bad roads
+        self.db.brake_condition = 100      # wears faster with heavy loads
+        self.db.oil_miles = 0              # miles since last oil change (change every ~3000)
+        # Achievements
+        self.db.achievements = []          # list of achievement keys earned
 
     @property
     def max_speed(self):
@@ -203,10 +278,19 @@ class Trucker(ObjectParent, DefaultCharacter):
 
     @property
     def fuel_consumption(self):
-        """Gallons per mile. Heavier load = more fuel. Base: 0.15 gal/mi."""
+        """Gallons per mile. Heavier load + higher speed = more fuel.
+        Base: 0.15 gal/mi at 55 mph. Speed sweet spot is ~55 mph.
+        Below 55: slight savings. Above 55: burns more exponentially."""
         base = 0.15
         weight_factor = 1.0 + (self.current_cargo_weight / 60000.0) * 0.5
-        return base * weight_factor
+        # Speed factor: 55 mph = 1.0, 45 = 0.85, 65 = 1.10, 75 = 1.25, 85 = 1.45
+        speed = self.speed
+        speed_factor = 0.85 + ((speed - 45) / 40.0) * 0.60  # linear 0.85 to 1.45
+        speed_factor = max(0.80, min(1.50, speed_factor))
+        # Truck health: worn engine burns more fuel
+        health = self.db.truck_health if self.db.truck_health is not None else 100
+        health_factor = 1.0 + (100 - health) / 200.0  # at 0 health, 1.5x fuel
+        return base * weight_factor * speed_factor * health_factor
 
     @property
     def is_driving(self):
@@ -243,6 +327,20 @@ class Trucker(ObjectParent, DefaultCharacter):
             f"|wRadar:|n {radar['name']}" + (f" ({radar['detection']*100:.0f}% detect)" if radar['detection'] > 0 else ""),
         ]
 
+        # Truck condition
+        health = self.db.truck_health if self.db.truck_health is not None else 100
+        tires = self.db.tire_condition if self.db.tire_condition is not None else 100
+        brakes = self.db.brake_condition if self.db.brake_condition is not None else 100
+        oil_miles = self.db.oil_miles or 0
+        lines.append("")
+        lines.append(f"|w--- CONDITION ---")
+        h_color = "|g" if health >= 70 else ("|y" if health >= 40 else "|r")
+        t_color = "|g" if tires >= 70 else ("|y" if tires >= 40 else "|r")
+        b_color = "|g" if brakes >= 70 else ("|y" if brakes >= 40 else "|r")
+        o_color = "|g" if oil_miles < 2000 else ("|y" if oil_miles < 3000 else "|r")
+        lines.append(f"|wTruck:|n {h_color}{health}%|n  |wTires:|n {t_color}{tires}%|n  |wBrakes:|n {b_color}{brakes}%|n")
+        lines.append(f"|wOil:|n {o_color}{oil_miles:,} mi since change|n" + (" |r(OVERDUE)|n" if oil_miles >= 3000 else ""))
+
         # Trucker needs
         hunger = self.db.hunger or 0
         bladder = self.db.bladder or 0
@@ -272,6 +370,15 @@ class Trucker(ObjectParent, DefaultCharacter):
                 from world.cities import CITIES
                 route_names = [CITIES.get(k, {}).get("name", k) for k in gps_route]
                 lines.append(f"|wGPS Route:|n {' -> '.join(route_names)} ({len(gps_route)} stop(s) remaining)")
+
+        # Achievements
+        achievements = self.db.achievements or []
+        if achievements:
+            lines.append("")
+            lines.append(f"|w--- ACHIEVEMENTS ({len(achievements)}/{len(ACHIEVEMENTS)}) ---")
+            for key in achievements:
+                ach = ACHIEVEMENTS.get(key, {})
+                lines.append(f"  |y*|n {ach.get('name', key)} — |x{ach.get('desc', '')}|n")
 
         return "\n".join(lines)
 

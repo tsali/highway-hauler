@@ -148,7 +148,7 @@ class CityRoom(Room):
 
             # Commands hint
             lines.append("")
-            lines.append("|wCommands:|n |yeat|n |yrestroom|n |ysleep|n |yrefuel|n |yupgrade|n |ystatus|n |ycargo|n |ycb|n |yboard|n")
+            lines.append("|wCommands:|n |yeat|n |yrestroom|n |ysleep|n |yrefuel|n |yrepair|n |yupgrade|n |ystatus|n |ycargo|n |ycb|n |yboard|n")
         return "\n".join(lines)
 
 
@@ -265,7 +265,7 @@ class RestStopRoom(Room):
             "|wA truck stop along the highway. Diesel fumes and coffee.|n",
             "|wThe parking lot is full of idling rigs.|n",
             "",
-            "|wServices:|n |gGas Station|n, |yDiner|n, |cRestrooms|n, |mBunks|n",
+            "|wServices:|n |gGas Station|n, |yDiner|n, |cRestrooms|n, |mBunks|n, |xBathroom Wall|n",
             "",
         ]
 
@@ -273,8 +273,8 @@ class RestStopRoom(Room):
             fuel = looker.db.fuel or 0
             lines.append(f"|wFuel:|n {fuel:.0f}/{looker.fuel_capacity} gal")
             lines.append("")
-            lines.append("|wType |yrefuel|n, |yeat|n, |yrestroom|n, or |ysleep|n.|n")
-            lines.append("|wType |ydrive|n to get back on the road.|n")
+            lines.append("|wType |yrefuel|n, |yeat|n, |yrestroom|n, |ysleep|n, or |yrepair|n.|n")
+            lines.append("|wType |yboard|n to read the bathroom wall. |ydrive|n to get back on the road.|n")
 
             cargo = looker.db.current_cargo or []
             if cargo:

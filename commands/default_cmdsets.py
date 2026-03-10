@@ -15,6 +15,7 @@ from commands.trucker import (
 from commands.encounters import CmdLotLizardResponse, CmdGangResponse
 from commands.needs import CmdEat, CmdDinerChoice, CmdRestroom, CmdSleep, CmdNoInput, CmdNoMatch
 from commands.board import CmdBoard, CmdPost
+from commands.maintenance import CmdRepair
 
 
 class CharacterCmdSet(BaseCharacterCmdSet):
@@ -60,6 +61,9 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         # City message board
         self.add(CmdBoard())
         self.add(CmdPost())
+
+        # Truck maintenance
+        self.add(CmdRepair())
 
         # System commands
         self.add(CmdNoInput())

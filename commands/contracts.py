@@ -352,3 +352,52 @@ class CmdDeliver(Command):
         caller.msg(f"\n|wTotal earned:|n |g${total_pay:,}|n")
         caller.msg(f"|wBank balance:|n |g${caller.db.money:,}|n")
         caller.msg(f"|wReputation:|n {caller.db.reputation}/100")
+
+        # Check delivery achievements
+        from typeclasses.characters import grant_achievement
+        deliveries = caller.db.deliveries_completed or 0
+        if deliveries >= 1:
+            grant_achievement(caller, "first_delivery")
+        if deliveries >= 10:
+            grant_achievement(caller, "ten_deliveries")
+        if deliveries >= 50:
+            grant_achievement(caller, "fifty_deliveries")
+        if deliveries >= 100:
+            grant_achievement(caller, "hundred_deliveries")
+        # On-time streak
+        ontime = caller.db.deliveries_ontime or 0
+        if ontime >= 10:
+            grant_achievement(caller, "perfect_ten")
+        # Clean record
+        if deliveries >= 50 and (caller.db.weigh_violations or 0) == 0:
+            grant_achievement(caller, "clean_record")
+        # Money achievements
+        for c in deliverable:
+            pay = c.get("pay", 0)
+            if pay >= 1000:
+                grant_achievement(caller, "first_grand")
+            if pay >= 5000:
+                grant_achievement(caller, "five_grand")
+            if pay >= 10000:
+                grant_achievement(caller, "ten_grand")
+            weight = c.get("weight", 0)
+            if weight >= 40000:
+                grant_achievement(caller, "heavy_hauler")
+            if weight >= 55000:
+                grant_achievement(caller, "max_weight")
+            # Cargo type tracking
+            cargo_key = c.get("cargo_key", "")
+            if cargo_key == "fuel":
+                caller.db.hazmat_deliveries = (caller.db.hazmat_deliveries or 0) + 1
+                if caller.db.hazmat_deliveries >= 5:
+                    grant_achievement(caller, "hazmat_hauler")
+            elif cargo_key == "medical":
+                caller.db.medical_deliveries = (caller.db.medical_deliveries or 0) + 1
+                if caller.db.medical_deliveries >= 5:
+                    grant_achievement(caller, "medical_runner")
+            elif cargo_key == "livestock":
+                caller.db.livestock_deliveries = (caller.db.livestock_deliveries or 0) + 1
+                if caller.db.livestock_deliveries >= 5:
+                    grant_achievement(caller, "livestock_wrangler")
+        if (caller.db.money or 0) >= 100000:
+            grant_achievement(caller, "rich_trucker")

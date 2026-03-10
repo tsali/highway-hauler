@@ -119,6 +119,42 @@ class DrivingScript(DefaultScript):
         trucker.db.driving_miles_left = max(0, (trucker.db.driving_miles_left or 0) - miles_this_tick)
         trucker.db.miles_driven = (trucker.db.miles_driven or 0) + int(miles_this_tick)
 
+        # Mileage achievements
+        from typeclasses.characters import grant_achievement
+        total_miles = trucker.db.miles_driven or 0
+        if total_miles >= 1000:
+            grant_achievement(trucker, "thousand_miles")
+        if total_miles >= 10000:
+            grant_achievement(trucker, "ten_thousand_miles")
+        if total_miles >= 50000:
+            grant_achievement(trucker, "fifty_thousand_miles")
+        if total_miles >= 100000:
+            grant_achievement(trucker, "hundred_thousand_miles")
+
+        # Speed demon
+        if speed >= 85:
+            grant_achievement(trucker, "speed_demon")
+
+        # Night owl — 12+ hours driving
+        hours = trucker.db.hours_driving or 0
+        if hours >= 12:
+            grant_achievement(trucker, "night_owl")
+
+        # Fuel miser tracking (miles at 55 or under)
+        if speed <= 55:
+            trucker.db.fuel_miser_miles = (trucker.db.fuel_miser_miles or 0) + int(miles_this_tick)
+            if (trucker.db.fuel_miser_miles or 0) >= 500:
+                grant_achievement(trucker, "fuel_miser")
+
+        # Iron bladder tracking
+        if (trucker.db.bladder or 0) > 0:
+            trucker.db.miles_without_restroom = (trucker.db.miles_without_restroom or 0) + int(miles_this_tick)
+            if (trucker.db.miles_without_restroom or 0) >= 500:
+                grant_achievement(trucker, "iron_bladder")
+
+        # Truck wear per tick
+        self._tick_wear(trucker, miles_this_tick, weather)
+
         # Weather changes dynamically (10% chance per tick, region-appropriate)
         if random.random() < 0.10:
             self._weather_tick(trucker)
@@ -190,6 +226,104 @@ class DrivingScript(DefaultScript):
 
         # Check for rest areas along this highway segment
         self._check_rest_areas(trucker, miles_left, total_miles, hwy, from_key, dest_key)
+
+    def _tick_wear(self, trucker, miles, weather):
+        """Degrade truck components each tick. Miles ~15 per tick."""
+        # Truck health: slow wear, faster if oil is overdue
+        oil_miles = (trucker.db.oil_miles or 0) + int(miles)
+        trucker.db.oil_miles = oil_miles
+        health_wear = 0.1  # base per tick
+        if oil_miles >= 3000:
+            health_wear += 0.2  # overdue oil accelerates wear
+        trucker.db.truck_health = max(0, (trucker.db.truck_health if trucker.db.truck_health is not None else 100) - health_wear)
+
+        # Tires: weather and road conditions cause wear
+        tire_wear = 0.15
+        if weather in ("rain", "storm"):
+            tire_wear += 0.1
+        if weather == "snow":
+            tire_wear += 0.15
+        trucker.db.tire_condition = max(0, (trucker.db.tire_condition if trucker.db.tire_condition is not None else 100) - tire_wear)
+
+        # Brakes: heavier loads wear brakes faster
+        weight = trucker.current_cargo_weight
+        brake_wear = 0.08 + (weight / 60000.0) * 0.12  # 0.08 empty, 0.20 full load
+        trucker.db.brake_condition = max(0, (trucker.db.brake_condition if trucker.db.brake_condition is not None else 100) - brake_wear)
+
+        # Warnings at thresholds
+        health = trucker.db.truck_health
+        tires = trucker.db.tire_condition
+        brakes = trucker.db.brake_condition
+
+        if 39 < health <= 40:
+            trucker.msg("|y*** ENGINE WARNING: Truck health at 40%. Find a mechanic soon. ***|n")
+        elif 19 < health <= 20:
+            trucker.msg("|r*** CRITICAL: Truck health at 20%! Breakdown imminent! ***|n")
+        if 39 < tires <= 40:
+            trucker.msg("|y*** Your tires are wearing thin. Consider replacing them. ***|n")
+        if 39 < brakes <= 40:
+            trucker.msg("|y*** Brakes are getting soft. Heavy loads will be dangerous. ***|n")
+        if oil_miles >= 3000 and random.random() < 0.10:
+            trucker.msg("|y*** Oil change overdue! Engine wear increasing. ***|n")
+
+        # Breakdown events at low health
+        if health <= 15 and random.random() < 0.08:
+            self._breakdown(trucker, "engine")
+        elif tires <= 15 and random.random() < 0.10:
+            self._breakdown(trucker, "tire")
+        elif brakes <= 15 and random.random() < 0.06:
+            self._breakdown(trucker, "brakes")
+
+        # Achievement: driving on fumes
+        if health <= 20:
+            from typeclasses.characters import grant_achievement
+            grant_achievement(trucker, "breakdown_survivor")
+
+    def _breakdown(self, trucker, part):
+        """Handle a breakdown event based on worn part."""
+        if part == "engine":
+            trucker.msg("|r*** ENGINE FAILURE! ***|n")
+            trucker.msg("|rYour engine sputters, coughs black smoke, and dies.|n")
+            trucker.msg("|rRoadside assistance is on the way...|n")
+            cost = random.randint(400, 1000)
+            trucker.db.money = max(0, (trucker.db.money or 0) - cost)
+            trucker.db.truck_health = max(20, trucker.db.truck_health or 0)  # emergency patch
+            trucker.msg(f"|rEmergency repair: ${cost}. Truck patched to 20%.|n")
+            trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(15, 30)
+            trucker.msg("|rYou need a real mechanic at the next stop.|n")
+        elif part == "tire":
+            trucker.msg("|r*** BLOWOUT! ***|n")
+            trucker.msg("|rYour worn tire explodes at highway speed! The rig swerves hard.|n")
+            cost = random.randint(150, 400)
+            trucker.db.money = max(0, (trucker.db.money or 0) - cost)
+            trucker.db.tire_condition = max(25, trucker.db.tire_condition or 0)
+            trucker.msg(f"|rSpare tire mounted: ${cost}. Tires patched to 25%.|n")
+            trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(10, 20)
+            # Cargo damage chance
+            cargo = trucker.db.current_cargo or []
+            if cargo and random.random() < 0.3:
+                damaged = random.choice(cargo)
+                old_pay = damaged.get("pay", 0)
+                damaged["pay"] = int(old_pay * 0.85)
+                trucker.db.current_cargo = cargo
+                trucker.msg(f"|rYour {damaged.get('cargo_name', 'cargo')} shifted during the blowout! Payout reduced 15%.|n")
+        elif part == "brakes":
+            trucker.msg("|r*** BRAKE FAILURE! ***|n")
+            trucker.msg("|rYou press the pedal and it goes to the floor!|n")
+            # Downshift/engine brake to slow down
+            if random.random() < 0.6:
+                trucker.msg("|yYou downshift and use the engine brake. Close call!|n")
+                trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(5, 10)
+            else:
+                cost = random.randint(300, 800)
+                trucker.msg("|rYou slam into the runaway truck ramp!|n")
+                trucker.msg(f"|rDamage and tow: ${cost}|n")
+                trucker.db.money = max(0, (trucker.db.money or 0) - cost)
+                trucker.db.truck_health = max(0, (trucker.db.truck_health or 100) - 15)
+                trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(20, 35)
+            trucker.db.brake_condition = max(20, trucker.db.brake_condition or 0)
+            trucker.msg("|rGet those brakes fixed at the next stop.|n")
+        trucker.msg(f"|rMoney remaining: |w${trucker.db.money:,}|n")
 
     def _tick_needs(self, trucker):
         """Increase trucker needs each driving tick (10s = ~15 game minutes)."""
@@ -615,6 +749,11 @@ class DrivingScript(DefaultScript):
                 return  # Avoided!
 
         # No radar or didn't detect — encounter happens
+        trucker.db.cop_pullover_count = (trucker.db.cop_pullover_count or 0) + 1
+        if (trucker.db.cop_pullover_count or 0) >= 5:
+            from typeclasses.characters import grant_achievement
+            grant_achievement(trucker, "bear_bait")
+
         cop_names = [
             "A state trooper", "A highway patrol officer", "A county sheriff",
             "A speed enforcement unit", "An unmarked cruiser",
@@ -982,11 +1121,52 @@ NPC_BOARD_MESSAGES = [
     "That sunrise coming into {city} this morning was worth the overnight haul.",
 ]
 
+# Shady rest stop bathroom wall messages
+REST_STOP_BOARD_MESSAGES = [
+    # Classic bathroom wall
+    "For a good time call 555-{number}",
+    "For a REAL good time call 555-{number}. Ask for {lizard_name}.",
+    "{lizard_name} — best company on {highway}. You know the deal.",
+    "If you see {lizard_name} in the lot, tell her {handle} says hi.",
+    "DON'T call 555-{number}. Trust me. Just don't.",
+    "{lizard_name} is back at the {highway} stop. Fair prices, clean hands.",
+    "Best lot lizard between {city} and {other_city}: {lizard_name}. 10/10.",
+    "555-{number} — she'll knock on YOUR door. No waiting.",
+    # Shady deals
+    "Need papers? Talk to the guy in the red Kenworth. No questions.",
+    "Selling a slightly used Cobra CB. Fell off a truck. $50. Stall 3.",
+    "Anybody need a radar detector? Got two. Meet me by the dumpster.",
+    "CHEAP DIESEL — ask at the counter for 'the special'. Cash only.",
+    "Lost a bet to {handle}. If you see him, I owe him $200. Don't tell him I was here.",
+    # Trucker graffiti
+    "HERE I SIT BROKEN HEARTED — paid a dime and only...",
+    "I was here. So was {handle}'s mom.",
+    "{handle} is a snitch. Pass it on.",
+    "{handle} owes me money. You know who you are.",
+    "If you can read this, you're in the wrong stall.",
+    "This truck stop has the best showers between {city} and {other_city}.",
+    "Scratched into the paint: \"{handle} + {lizard_name} 4ever\"",
+    "Management is not responsible for what happens in the parking lot after midnight.",
+    "FREE KITTENS — ask the cashier. Not kidding. She found them behind the dumpster.",
+    "Whoever stole my mud flaps: I know where you park.",
+    "Rest stop review: 2/5 stars. Coffee is battery acid. Restrooms are war crimes. Good pie though.",
+    "The vending machine eats quarters. Kick it on the left side.",
+    "Don't sleep in lot 7. That's where the raccoons live now.",
+    "{handle} slept here 3 nights straight. Management finally asked him to leave.",
+]
+
+# Lot lizard names for rest stop messages
+REST_STOP_LIZARD_NAMES = [
+    "Crystal", "Destiny", "Angel", "Tiffany", "Brandy",
+    "Candy", "Diamond", "Jasmine", "Raven", "Starla",
+    "Cinnamon", "Roxanne", "Bambi", "Chastity", "Mercedes",
+]
+
 
 class BoardNPCScript(DefaultScript):
     """
-    Global script: posts random NPC trucker messages to city boards.
-    Ticks every 3 minutes. ~40% chance per tick to post to a random city.
+    Global script: posts random NPC trucker messages to city and rest stop boards.
+    Ticks every 3 minutes. Posts to cities and rest stops.
     """
 
     def at_script_creation(self):
@@ -995,10 +1175,32 @@ class BoardNPCScript(DefaultScript):
         self.persistent = True
 
     def at_repeat(self):
-        """Maybe post an NPC message to a random city board."""
-        if random.random() > 0.40:
-            return
+        """Maybe post NPC messages to city and rest stop boards."""
+        # City board: 40% chance
+        if random.random() < 0.40:
+            self._post_city_message()
+        # Rest stop board: 30% chance
+        if random.random() < 0.30:
+            self._post_rest_stop_message()
 
+    def _get_handle(self):
+        """Pick an NPC handle, sometimes a real player name."""
+        handle = random.choice(NPC_HANDLES)
+        try:
+            from typeclasses.characters import Trucker
+            real_truckers = [
+                t.db.handle for t in Trucker.objects.all()
+                if t.db.handle and t.db.chargen_complete
+            ]
+            if real_truckers and random.random() < 0.3:
+                handle = random.choice(real_truckers)
+        except Exception:
+            pass
+        return handle
+
+    def _post_city_message(self):
+        """Post a trucker message to a random city board."""
+        import time as _time
         from evennia.utils.search import search_tag
         from world.cities import CITIES, HIGHWAYS
 
@@ -1013,7 +1215,6 @@ class BoardNPCScript(DefaultScript):
         city_data = CITIES.get(city_key, {})
         city_name = city_data.get("name", city_key)
 
-        # Find highways connected to this city
         connected = []
         for a, b, dist, hwy in HIGHWAYS:
             if a == city_key:
@@ -1025,40 +1226,60 @@ class BoardNPCScript(DefaultScript):
         other_city_key = random.choice(connected)[0] if connected else random.choice(city_keys)
         other_city_name = CITIES.get(other_city_key, {}).get("name", other_city_key)
 
-        # Pick a handle — sometimes use a real player name
-        handle = random.choice(NPC_HANDLES)
-        try:
-            from typeclasses.characters import Trucker
-            real_truckers = [
-                t.db.handle for t in Trucker.objects.all()
-                if t.db.handle and t.db.chargen_complete
-            ]
-            if real_truckers and random.random() < 0.3:
-                handle = random.choice(real_truckers)
-        except Exception:
-            pass
-
-        # Build the message
-        import time as _time
+        handle = self._get_handle()
         template = random.choice(NPC_BOARD_MESSAGES)
         mile = random.randint(5, 180)
         text = template.format(
-            city=city_name,
-            highway=highway,
-            other_city=other_city_name,
-            handle=handle,
-            mile=mile,
+            city=city_name, highway=highway,
+            other_city=other_city_name, handle=handle, mile=mile,
         )
 
         npc_author = random.choice(NPC_HANDLES)
+        board = room.db.message_board or []
+        board.append({"author": npc_author, "text": text, "time": _time.time()})
+        if len(board) > 20:
+            board = board[-20:]
+        room.db.message_board = board
+
+    def _post_rest_stop_message(self):
+        """Post a shady message to the rest stop board."""
+        import time as _time
+        from evennia.utils.search import search_tag
+        from world.cities import CITIES, HIGHWAYS
+
+        rooms = search_tag("rest_stop_room", category="highway")
+        if not rooms:
+            return
+        room = rooms[0]
+
+        city_keys = list(CITIES.keys())
+        city_name = CITIES.get(random.choice(city_keys), {}).get("name", "Nowhere")
+        other_city_name = CITIES.get(random.choice(city_keys), {}).get("name", "Somewhere")
+
+        all_hwys = list(set(hwy for _, _, _, hwy in HIGHWAYS))
+        highway = random.choice(all_hwys) if all_hwys else "I-40"
+
+        handle = self._get_handle()
+        lizard_name = random.choice(REST_STOP_LIZARD_NAMES)
+        number = f"{random.randint(100,999)}-{random.randint(1000,9999)}"
+
+        template = random.choice(REST_STOP_BOARD_MESSAGES)
+        text = template.format(
+            city=city_name, highway=highway,
+            other_city=other_city_name, handle=handle,
+            lizard_name=lizard_name, number=number,
+        )
+
+        # Rest stop authors are more anonymous
+        shady_authors = [
+            "Anonymous", "???", "Scratched In", "Sharpie",
+            "Bathroom Poet", "Stall 3", "The Regular",
+            "Night Shift", "Lot Dweller",
+        ]
+        author = random.choice(shady_authors)
 
         board = room.db.message_board or []
-        board.append({
-            "author": npc_author,
-            "text": text,
-            "time": _time.time(),
-        })
-        # Keep boards from growing too large
+        board.append({"author": author, "text": text, "time": _time.time()})
         if len(board) > 20:
             board = board[-20:]
         room.db.message_board = board

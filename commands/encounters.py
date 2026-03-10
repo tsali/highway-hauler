@@ -132,6 +132,8 @@ class CmdLotLizardResponse(Command):
                 if (caller.db.cb_level or 0) > 0:
                     caller.db.cb_level = 0
             caller.msg(f"|rMoney remaining: |w${caller.db.money:,}|n")
+            from typeclasses.characters import grant_achievement
+            grant_achievement(caller, "lot_lizard_survivor")
 
         elif outcome == "std":
             medical_cost = random.randint(200, 600)
@@ -229,6 +231,8 @@ class CmdGangResponse(Command):
                 caller.db.money = (caller.db.money or 0) + reward
                 caller.db.reputation = min(100, (caller.db.reputation or 50) + 5)
                 caller.msg(f"|gReputation +5. Word spreads you're not to be messed with.|n")
+                from typeclasses.characters import grant_achievement
+                grant_achievement(caller, "gang_fighter")
             else:
                 caller.msg(f"|r*** Outnumbered and outgunned. ***|n")
                 self._lose_cargo(caller)

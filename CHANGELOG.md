@@ -1,5 +1,40 @@
 # Changelog — Highway Hauler
 
+## v0.3a — 2026-03-10
+
+### Added
+- **Truck health system**: truck body, tires, brakes, and oil condition tracked separately
+  - Components wear over time from driving (weather, load weight, overdue oil accelerate wear)
+  - Warnings at 40% and 20% condition
+  - Breakdowns at <15%: engine failure, tire blowout, brake failure (each with unique consequences)
+  - `repair` command: fix individual parts or `repair all` at cities and rest stops
+  - Partial repairs if you can't afford full service
+  - Oil changes every ~3,000 miles ($150)
+- **Speed-fuel relationship**: driving at 55 mph is optimal fuel economy; faster burns more
+  - 45 mph = 0.85x fuel, 55 = 1.0x, 65 = 1.10x, 75 = 1.25x, 85 = 1.45x
+  - Poor truck health also increases fuel consumption (up to 1.5x at 0% health)
+- **30 achievements** with Saint Christopher CB announcements:
+  - Milestone: First Haul, Road Regular (10), Highway Veteran (50), Road Warrior (100)
+  - Mileage: Thousand Miler, Cross-Country (10k), Iron Horse (50k), Million Miler (100k)
+  - Money: First Grand, Big Payday ($5k), Whale Haul ($10k), Six Figures ($100k bank)
+  - Cargo: Heavy Hauler (40k lbs), Maxed Out (55k lbs), Hazmat Handler, Mercy Run, Cattle Drive
+  - Driving: Speed Demon (85 mph), Fuel Miser (500 mi at <=55), Perfect Ten, Night Owl, Iron Bladder
+  - Encounters: Bear Bait (5 pullover), Lot Lizard Survivor, Highwayman (fight off gang)
+  - Truck: Chrome & Custom (max all upgrades), Duct Tape & Prayers (drive at <20% health)
+  - Social: Trucker Poet (10 board posts), Breaker Breaker (50 CB messages)
+  - Clean Record: 50 deliveries with 0 weigh violations
+- **Rest stop bathroom wall boards**: shady NPC messages at truck stops
+  - Lot lizard recommendations, shady deals, bathroom graffiti, trucker drama
+  - Anonymous authors: "Scratched In", "Stall 3", "Bathroom Poet", "Lot Dweller"
+  - Players can read and post at rest stops too
+
+### Changed
+- Fuel consumption now factors in speed, cargo weight, and truck health
+- Rest stops now show repair and board commands
+- City rooms show repair in command hints
+- Board commands work at both cities and rest stops
+- Achievement announcements broadcast via CB as "Saint Christopher" (patron saint of travelers)
+
 ## v0.2a — 2026-03-09
 
 ### Added

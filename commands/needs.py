@@ -363,6 +363,7 @@ class CmdRestroom(Command):
             caller.msg(random.choice(graffiti))
 
         caller.db.bladder = 0
+        caller.db.miles_without_restroom = 0
         caller.msg(f"|wBladder:|n 0/100")
 
 

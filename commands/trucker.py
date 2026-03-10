@@ -122,6 +122,17 @@ class CmdUpgrade(Command):
             caller.msg(f"|wNew:|n {next_level['name']}")
             caller.msg(f"|wCost:|n ${cost:,}")
             caller.msg(f"|wMoney remaining:|n |g${caller.db.money:,}|n")
+            # Check fully upgraded achievement
+            from typeclasses.characters import grant_achievement
+            all_maxed = True
+            for ut, ud in TRUCK_UPGRADES.items():
+                la = f"{ut.replace('cb_radio', 'cb')}_level"
+                lv = getattr(caller.db, la, 0) or 0
+                if lv < len(ud["levels"]) - 1:
+                    all_maxed = False
+                    break
+            if all_maxed:
+                grant_achievement(caller, "fully_upgraded")
         else:
             # Show confirmation prompt
             caller.ndb.pending_upgrade = {'utype': utype}
@@ -162,10 +173,15 @@ class CmdCB(Command):
         msg = self.args.strip()
 
         # Broadcast to all connected truckers with CB
-        from typeclasses.characters import Trucker
+        from typeclasses.characters import Trucker, grant_achievement
         for t in Trucker.objects.all():
             if (t.db.cb_level or 0) > 0 and t.has_account:
                 t.msg(f"|y[CB] {handle}:|n {msg}")
+
+        # CB chatter achievement
+        caller.db.cb_messages_sent = (caller.db.cb_messages_sent or 0) + 1
+        if (caller.db.cb_messages_sent or 0) >= 50:
+            grant_achievement(caller, "cb_chatter")
 
 
 class CmdWho(Command):

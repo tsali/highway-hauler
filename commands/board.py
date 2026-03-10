@@ -7,9 +7,9 @@ Truckers can read, post, and erase their own messages.
 
 import time
 from evennia.commands.command import Command
-from typeclasses.rooms import CityRoom
+from typeclasses.rooms import CityRoom, RestStopRoom
 
-MAX_MESSAGES = 20       # per city
+MAX_MESSAGES = 20       # per board
 MAX_MSG_LENGTH = 200    # characters per post
 
 
@@ -29,13 +29,16 @@ class CmdBoard(Command):
     def func(self):
         caller = self.caller
 
-        if not isinstance(caller.location, CityRoom):
-            caller.msg("|rNo message board here. Try a city.|n")
+        if not isinstance(caller.location, (CityRoom, RestStopRoom)):
+            caller.msg("|rNo message board here. Try a city or truck stop.|n")
             return
 
         room = caller.location
-        city_data = room.db.city_data or {}
-        city_name = city_data.get("name", "Unknown")
+        if isinstance(room, CityRoom):
+            city_data = room.db.city_data or {}
+            city_name = city_data.get("name", "Unknown")
+        else:
+            city_name = room.db.rest_stop_name or "Truck Stop"
 
         args = self.args.strip()
 
@@ -140,6 +143,12 @@ class CmdPost(Command):
         room.db.message_board = board
 
         caller.msg(f"|gMessage posted to the {city_name} board.|n")
+
+        # Board poster achievement
+        caller.db.board_posts = (caller.db.board_posts or 0) + 1
+        if (caller.db.board_posts or 0) >= 10:
+            from typeclasses.characters import grant_achievement
+            grant_achievement(caller, "board_poster")
 
         # Notify others in the room
         for obj in room.contents:

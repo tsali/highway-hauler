@@ -29,9 +29,11 @@ Players start as rookie truckers with a beat-up rig and $500. Pick up cargo cont
 | **Weather** | Dynamic regional weather: clear, rain, snow, fog, storm. Affects speed and fuel consumption |
 | **Cops & Radar** | Speed traps, fatigue stops, routine patrols. Radar detector warns you before they see you |
 | **Weigh Stations** | Random inspections with detailed weight checks. Scaled fines for overweight. Repeat offenders flagged |
-| **Rest Areas** | 95 truck stops along major highways. Refuel, eat, sleep, use restroom |
+| **Truck Health** | Truck body, tires, brakes, and oil wear over time. Breakdowns if neglected. Repair at stops |
+| **Rest Areas** | 95 truck stops along major highways. Refuel, eat, sleep, repair, bathroom wall graffiti |
 | **Encounters** | Lot lizards at truck stops, highway gangs on desert stretches |
-| **Message Boards** | Each city has its own board. NPC truckers leave tips, warnings, and CB chatter |
+| **Message Boards** | City boards for trucker tips; rest stop bathroom walls for shady graffiti and lot lizard reviews |
+| **Achievements** | 30 achievements announced by Saint Christopher on CB radio |
 | **GPS Navigation** | Auto-route planning with reliability based on upgrade level |
 | **DOT Compliance** | Hours-of-service tracking. Drive too long and DOT shuts you down |
 | **Multiplayer** | See other drivers at stops and on highways. CB radio chat. Compete on leaderboards |
@@ -69,6 +71,7 @@ Players start as rookie truckers with a beat-up rig and $500. Pick up cargo cont
 | `deliver` | Deliver cargo at destination city |
 | `refuel` | Fill up at a gas station |
 | `upgrade` / `upgrade <type>` | View or buy truck upgrades (engine, tank, trailer, cb, gps, radar) |
+| `repair` / `repair <part>` / `repair all` | Fix truck body, tires, brakes, or change oil |
 
 ### Trucker Life
 | Command | Description |
