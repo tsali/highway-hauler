@@ -511,39 +511,315 @@ class CmdStop(Command):
 
 class CmdMap(Command):
     """
-    Show an ASCII map of the interstate highway network.
+    Show a regional map of the interstate highway network.
 
     Usage:
-        map
+        map             - Show your current region
+        map <city>      - Show that city's region
+        map national    - Show the full national overview
+        map regions     - List all regions
+
+    Like flipping through a Rand McNally road atlas.
     """
 
     key = "map"
     locks = "cmd:all()"
 
+    # Region maps: hand-drawn ASCII showing cities + highway labels
+    # Each map ~12-15 lines, fits on a BBS terminal
+    REGION_MAPS = {
+        "northeast": (
+            "Northeast",
+            [
+                "|w=== NORTHEAST ===|n",
+                "",
+                "|w                        BUF --------- BOS|n",
+                "|w                       / |y(I-90)|n     / |y(I-90)|n |n",
+                "|w                     /          /          |n",
+                "|w                   PIT ------- CLE         |n",
+                "|w                  / |y(I-76)|n    |           |n",
+                "|w               NYC            COL --> |xMidwest|n",
+                "|w                |              |            |n",
+                "|w              |y(I-95)|n        |y(I-71)|n         |n",
+                "|w                |              |            |n",
+                "|w               PHL            CIN --> |xSoutheast|n",
+                "|w                |                           |n",
+                "|w               RIC --> |xSoutheast|n              |n",
+                "",
+                "|yI-90|w BOS-BUF-CLE  |yI-95|w BOS-NYC-PHL-RIC|n",
+                "|yI-80|w NYC-PIT      |yI-71|w CLE-COL-CIN|n",
+                "|yI-76|w PIT-CLE      |yI-79|w BUF-PIT|n",
+            ],
+        ),
+        "southeast": (
+            "Southeast",
+            [
+                "|w=== SOUTHEAST ===|n",
+                "",
+                "|w  |xNE|n<-- RIC               LOU --- CIN <--|xNE|n",
+                "|w         |               / |y(I-65)|n \\|y(I-71)|n    |n",
+                "|w       |y(I-85)|n       |y(I-64)|n      |            |n",
+                "|w         |            STL   NAS --- ATL   |n",
+                "|w        CHA          /   |y(I-65)|n |y(I-24)|n  |\\   |n",
+                "|w          \\        /       |      / | \\  |n",
+                "|w          ATL ---------- BHM     /  JAX |n",
+                "|w          / |y(I-20)|n       |y(I-65)|n   /  |y(I-95)|n |n",
+                "|w        /              MGM    /     |  |n",
+                "|w  NOR ------ MOB --- |y(I-65)|n  TLH   |  |n",
+                "|w  |y(I-10)|n      |y(I-10)|n  |     |y(I-10)|n  |  |n",
+                "|w                    PNS ------+    MIA|n",
+                "",
+                "|yI-65|w LOU-NAS-BHM-MGM-MOB  |yI-95|w RIC-JAX-MIA|n",
+                "|yI-10|w JAX-TLH-PNS-MOB-NOR  |yI-85|w RIC-CHA-ATL|n",
+                "|yI-20|w ATL-BHM-->|xS.Central|n    |yI-75|w CIN-ATL-JAX|n",
+            ],
+        ),
+        "midwest": (
+            "Midwest",
+            [
+                "|w=== MIDWEST ===|n",
+                "",
+                "|w          MIN --- MIL --- CHI --- DET|n",
+                "|w         |y(I-94)|n       |y(I-94)|n  |  |y(I-94)|n|n",
+                "|w           |              |     |   |n",
+                "|w          |y(I-35)|n          |y(I-65)|n |y(I-75)|n |n",
+                "|w           |              |     |   |n",
+                "|w  |xPlains|n<--DSM         IND   CIN  |n",
+                "|w            \\  |y(I-80)|n   |y(I-70)|n  / |y(I-71)|n|n",
+                "|w             OMA      |    /       |n",
+                "|w                    STL--LOU -->|xSE|n|n",
+                "|w             |y(I-70)|n  |  |y(I-64)|n        |n",
+                "|w                   KC --> |xPlains|n    |n",
+                "",
+                "|yI-94|w MIN-MIL-CHI-DET    |yI-65|w CHI-IND-LOU|n",
+                "|yI-70|w PIT-COL-IND-STL-KC |yI-55|w CHI-STL-MEM|n",
+                "|yI-80|w OMA-DSM            |yI-71|w CLE-COL-CIN-LOU|n",
+            ],
+        ),
+        "south_central": (
+            "South Central",
+            [
+                "|w=== SOUTH CENTRAL ===|n",
+                "",
+                "|w      |xMW|n<-- KC           MEM --- NAS -->|xSE|n",
+                "|w             |          |y(I-55)|n |  |y(I-40)|n      |n",
+                "|w           |y(I-35)|n        |              |n",
+                "|w             |          LR --- OKC        |n",
+                "|w            WIC       |y(I-40)|n    |  |y(I-40)|n     |n",
+                "|w             |                  |           |n",
+                "|w           |y(I-35)|n              |y(I-35)|n          |n",
+                "|w             |                  |           |n",
+                "|w            OKC ------------> ABQ -->|xMtn|n  |n",
+                "|w             |y(I-40)|n                        |n",
+                "|w            DAL ------- HOU                |n",
+                "|w           |y(I-45)|n  |y(I-35)|n  |y(I-10)|n              |n",
+                "|w            SAT ------+   NOR -->|xSE|n      |n",
+                "",
+                "|yI-35|w MIN-DSM-KC-WIC-OKC-DAL-SAT |yI-45|w DAL-HOU|n",
+                "|yI-40|w MEM-LR-OKC-ABQ  |yI-10|w NOR-HOU-SAT-ELP|n",
+                "|yI-55|w CHI-STL-MEM-NOR  |yI-20|w BHM-DAL|n",
+            ],
+        ),
+        "mountain": (
+            "Mountain West",
+            [
+                "|w=== MOUNTAIN WEST ===|n",
+                "",
+                "|w  |xNW|n<-- SPO         BIL          |n",
+                "|w             |y(I-90)|n      |  |y(I-90)|n       |n",
+                "|w                    |              |n",
+                "|w          BOI     CHY              |n",
+                "|w         |y(I-84)|n   |  |y(I-25)|n |y(I-80)|n          |n",
+                "|w           |    DEN ------- OMA -->|xPlains|n|n",
+                "|w          SLC  |y(I-25)|n  |y(I-70)|n   KC -->|xMW|n  |n",
+                "|w         /  |y(I-80)|n |               |n",
+                "|w  |xPac|n<--+      ABQ               |n",
+                "|w    |y(I-15)|n    |y(I-25)|n |  |y(I-40)|n            |n",
+                "|w   LV       |               |n",
+                "|w            ELP -->|xS.Central|n       |n",
+                "",
+                "|yI-25|w ELP-ABQ-DEN-CHY   |yI-80|w OMA-CHY-SLC-SAC|n",
+                "|yI-70|w KC-DEN            |yI-84|w SLC-BOI-POR|n",
+                "|yI-90|w BIL-SPO           |yI-15|w LV-SLC|n",
+            ],
+        ),
+        "pacific": (
+            "Pacific West",
+            [
+                "|w=== PACIFIC WEST ===|n",
+                "",
+                "|w  SEA --- SPO -->|xMountain|n        |n",
+                "|w   |  |y(I-90)|n                      |n",
+                "|w  |y(I-5)|n                            |n",
+                "|w   |                              |n",
+                "|w  POR --- BOI -->|xMountain|n        |n",
+                "|w   |  |y(I-84)|n                      |n",
+                "|w  |y(I-5)|n            SLC -->|xMtn|n    |n",
+                "|w   |             /  |y(I-80)|n        |n",
+                "|w  SAC --------- +             |n",
+                "|w   |  |y(I-80)|n    |y(I-15)|n            |n",
+                "|w  SFO          LV              |n",
+                "|w              |y(I-15)|n |  |y(US-93)|n       |n",
+                "|w   LA -------- + --- PHX        |n",
+                "|w   |  |y(I-15)|n      |y(I-10)|n  |          |n",
+                "|w  SD          TUC ---- ELP -->|xMtn|n|n",
+                "",
+                "|yI-5|w SD-LA-SAC-POR-SEA  |yI-15|w SD-LA-LV-SLC|n",
+                "|yI-80|w SAC-SLC           |yI-10|w LA-PHX-TUC-ELP|n",
+            ],
+        ),
+        "plains": (
+            "Great Plains",
+            [
+                "|w=== GREAT PLAINS ===|n",
+                "",
+                "|w          MIN -->|xMidwest|n           |n",
+                "|w           |  |y(I-35)|n  |y(I-90)|n         |n",
+                "|w           |                       |n",
+                "|w          DSM ------ SXF           |n",
+                "|w         |y(I-80)|n  |y(I-35)|n    |  |y(I-29)|n      |n",
+                "|w           |        |              |n",
+                "|w          OMA ----- + --- BIL -->|xMtn|n|n",
+                "|w         |y(I-29)|n       |y(I-90)|n           |n",
+                "|w           |                       |n",
+                "|w          KC --- WIC               |n",
+                "|w        |y(I-70)|n   |y(I-35)|n                  |n",
+                "|w  |xMtn|n<-- DEN    OKC -->|xS.Central|n       |n",
+                "",
+                "|yI-35|w MIN-DSM-KC-WIC-OKC  |yI-29|w SXF-OMA-KC|n",
+                "|yI-80|w OMA-CHY             |yI-90|w SXF-BIL|n",
+                "|yI-70|w KC-DEN              |yI-80|w DSM-OMA|n",
+            ],
+        ),
+        "northwest": (
+            "Northwest",
+            [
+                "|w=== NORTHWEST ===|n",
+                "",
+                "|w  SEA ---------- SPO               |n",
+                "|w   |   |y(I-90)|n       |                |n",
+                "|w  |y(I-5)|n              |y(I-90)|n             |n",
+                "|w   |               |                |n",
+                "|w  POR             BIL -->|xMountain|n   |n",
+                "|w   |                                |n",
+                "|w  |y(I-84)|n           BOI              |n",
+                "|w   |            |y(I-84)|n               |n",
+                "|w   +----------- + --> SLC -->|xMountain|n|n",
+                "",
+                "|yI-90|w SEA-SPO-BIL       |yI-5|w SEA-POR|n",
+                "|yI-84|w POR-BOI-SLC       |n",
+            ],
+        ),
+    }
+
+    NATIONAL_MAP = [
+        "|w=== NATIONAL OVERVIEW ===|n",
+        "",
+        "|w SEA-SPO       BIL         MIN-MIL              BUF--BOS|n",
+        "|w  |    \\        |            |   \\                |     ||n",
+        "|w POR   BOI      |           SXF  CHI--DET       PIT   NYC|n",
+        "|w  |     |       |            |    |    |          |     ||n",
+        "|w SAC  SLC-----CHY           DSM  IND   \\    COL-CLE   PHL|n",
+        "|w  |    |        |            |/   |    |     |    |     ||n",
+        "|w SFO   |       DEN          OMA  LOU--CIN   |   RIC    ||n",
+        "|w       |        |            | /  |    \\     |    |     ||n",
+        "|w      LV       ABQ          KC STL NAS  \\  CHA   |     ||n",
+        "|w       |      / |            |  |   |   ATL  |    |     ||n",
+        "|w     PHX   TUC  ELP        WIC MEM BHM / \\ JAX  TLH   ||n",
+        "|w      |     |    |           |   |  MGM   |   PNS  |    ||n",
+        "|w     LA     |    |         OKC  LR  |    |    |    |   MIA|n",
+        "|w      |     +----+    SAT-DAL  NOR MOB--+----+    +----+|n",
+        "|w     SD               |   |    |                        |n",
+        "|w                      +-HOU---+                         |n",
+        "",
+        "|wRegions:|n |yNE|n |ySE|n |yMW|n |ySC|n |yMtn|n |yPac|n |yPlains|n |yNW|n",
+        "|wType |ymap <region>|w or |ymap <city>|w to zoom in.|n",
+    ]
+
+    # Aliases for regions
+    REGION_ALIASES = {
+        "ne": "northeast", "northeast": "northeast",
+        "se": "southeast", "southeast": "southeast",
+        "mw": "midwest", "midwest": "midwest",
+        "sc": "south_central", "south central": "south_central", "south_central": "south_central",
+        "mtn": "mountain", "mountain": "mountain",
+        "pac": "pacific", "pacific": "pacific",
+        "plains": "plains", "great plains": "plains",
+        "nw": "northwest", "northwest": "northwest",
+        "national": "national", "us": "national", "usa": "national", "all": "national",
+    }
+
     def func(self):
         caller = self.caller
 
-        # Compact 55-city ASCII map with integrated corridor labels
-        lines = [
-            "|w=== INTERSTATE MAP ===|n",
-            "|w SEA-SPO       BIL         MIN-MIL              BUF--BOS|n",
-            "|w  |    \\        |            |   \\                |     ||n",
-            "|w POR   BOI      |           SXF  CHI--DET       PIT   NYC|n",
-            "|w  |     |       |            |    |    |          |     ||n",
-            "|w SAC  SLC-----CHY           DSM  IND   \\    COL-CLE   PHL|n",
-            "|w  |    |        |            |/   |    |     |    |     ||n",
-            "|w SFO   |       DEN          OMA  LOU--CIN   |   RIC    ||n",
-            "|w       |        |            | /  |    \\     |    |     ||n",
-            "|w      LV       ABQ          KC STL NAS  \\  CHA   |     ||n",
-            "|w       |      / |            |  |   |   ATL  |    |     ||n",
-            "|w     PHX   TUC  ELP        WIC MEM BHM / \\ JAX  TLH   ||n",
-            "|w      |     |    |           |   |  MGM   |   PNS  |    ||n",
-            "|w     LA     |    |         OKC  LR  |    |    |    |   MIA|n",
-            "|w      |     +----+    SAT-DAL  NOR MOB--+----+    +----+|n",
-            "|w     SD               |   |    |                        |n",
-            "|w                      +-HOU---+                         |n",
-            "|yI-65|w CHI-IND-LOU-NAS-BHM-MGM-MOB |yI-10|w JAX..MOB..HOU..LA|n",
-            "|yI-35|w MIN-DSM-KC-WIC-OKC-DAL-SAT  |yI-95|w BOS-NYC..RIC-MIA|n",
-            "|wType |ydrive <city>|w to go. |ycontracts|w for cargo.|n",
-        ]
-        caller.msg("\n".join(lines))
+        if not self.args:
+            # Show current region
+            region = self._get_caller_region(caller)
+            if region and region in self.REGION_MAPS:
+                name, lines = self.REGION_MAPS[region]
+                caller.msg("\n".join(lines))
+                caller.msg("")
+                caller.msg(f"|wYou are in the |y{name}|w region.|n")
+                caller.msg("|wType |ymap <city>|w to see another region. |ymap national|w for full US.|n")
+            else:
+                # Fallback to national if region unknown
+                caller.msg("\n".join(self.NATIONAL_MAP))
+            return
+
+        arg = self.args.strip().lower()
+
+        # Check if it's a region name/alias
+        region_key = self.REGION_ALIASES.get(arg)
+        if region_key == "national":
+            caller.msg("\n".join(self.NATIONAL_MAP))
+            return
+        if region_key and region_key in self.REGION_MAPS:
+            name, lines = self.REGION_MAPS[region_key]
+            caller.msg("\n".join(lines))
+            return
+
+        # Check if it's a city name
+        city_key = find_city_by_name(arg)
+        if city_key:
+            city_data = CITIES.get(city_key, {})
+            region = city_data.get("region", "")
+            if region in self.REGION_MAPS:
+                name, lines = self.REGION_MAPS[region]
+                caller.msg("\n".join(lines))
+                caller.msg("")
+                caller.msg(f"|w{city_data.get('name', city_key)} is in the |y{name}|w region.|n")
+                return
+
+        # Check region by partial match
+        for alias, rkey in self.REGION_ALIASES.items():
+            if arg in alias:
+                if rkey == "national":
+                    caller.msg("\n".join(self.NATIONAL_MAP))
+                    return
+                if rkey in self.REGION_MAPS:
+                    name, lines = self.REGION_MAPS[rkey]
+                    caller.msg("\n".join(lines))
+                    return
+
+        caller.msg(f"|rUnknown region or city: '{self.args.strip()}'|n")
+        caller.msg("|wRegions: |yne|w |yse|w |ymw|w |ysc|w |ymtn|w |ypac|w |yplains|w |ynw|w |ynational|n")
+
+    def _get_caller_region(self, caller):
+        """Get the region the caller is currently in."""
+        # Check if at a city
+        if caller.location and hasattr(caller.location, 'db'):
+            city_key = getattr(caller.location.db, 'city_key', None)
+            if city_key:
+                return CITIES.get(city_key, {}).get("region", "")
+
+        # Check if driving
+        if caller.db.driving_to:
+            return CITIES.get(caller.db.driving_to, {}).get("region", "")
+        if caller.db.driving_from:
+            return CITIES.get(caller.db.driving_from, {}).get("region", "")
+
+        # Check home city
+        if caller.db.home_city:
+            return CITIES.get(caller.db.home_city, {}).get("region", "")
+
+        return ""

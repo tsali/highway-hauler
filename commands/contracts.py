@@ -335,7 +335,15 @@ class CmdDeliver(Command):
             caller.db.deliveries_completed = (caller.db.deliveries_completed or 0) + 1
             caller.db.reputation = min(100, (caller.db.reputation or 50) + (3 if is_ontime else 1))
 
+            # Track high scores
+            weight = c.get("weight", 0)
+            if weight > (caller.db.biggest_haul_weight or 0):
+                caller.db.biggest_haul_weight = weight
+            if total > (caller.db.biggest_haul_income or 0):
+                caller.db.biggest_haul_income = total
+
         caller.db.money = (caller.db.money or 0) + total_pay
+        caller.db.total_income = (caller.db.total_income or 0) + total_pay
         caller.msg(f"\n|wTotal earned:|n |g${total_pay:,}|n")
         caller.msg(f"|wBank balance:|n |g${caller.db.money:,}|n")
         caller.msg(f"|wReputation:|n {caller.db.reputation}/100")

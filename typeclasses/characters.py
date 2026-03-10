@@ -127,6 +127,10 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.tums_count = 0
         self.db.stomach_issues = False
         self.db.mandatory_rest = False  # DOT mandatory rest flag
+        # High score tracking
+        self.db.biggest_haul_weight = 0    # heaviest single delivery (lbs)
+        self.db.biggest_haul_income = 0    # highest single delivery payout ($)
+        self.db.total_income = 0           # lifetime earnings
 
     @property
     def speed(self):

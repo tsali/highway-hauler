@@ -239,6 +239,9 @@ class CmdScores(Command):
                 "deliveries": t.db.deliveries_completed or 0,
                 "money": t.db.money or 0,
                 "ontime": t.db.deliveries_ontime or 0,
+                "total_income": t.db.total_income or 0,
+                "biggest_weight": t.db.biggest_haul_weight or 0,
+                "biggest_income": t.db.biggest_haul_income or 0,
             })
 
         if not truckers:
@@ -266,6 +269,34 @@ class CmdScores(Command):
                 f"|g${t['money']:>9,}|n "
                 f"{ontime_pct:>8s}"
             )
+
+        # High score records
+        lines.append("")
+        lines.append("|w=== RECORDS ===|n")
+
+        # Most total income
+        by_income = sorted(truckers, key=lambda x: x["total_income"], reverse=True)
+        if by_income and by_income[0]["total_income"] > 0:
+            t = by_income[0]
+            lines.append(f"  |wHighest Lifetime Earnings:|n |c{t['handle']}|n |g${t['total_income']:,}|n")
+
+        # Most miles
+        by_miles = sorted(truckers, key=lambda x: x["miles"], reverse=True)
+        if by_miles and by_miles[0]["miles"] > 0:
+            t = by_miles[0]
+            lines.append(f"  |wMost Miles Driven:|n       |c{t['handle']}|n {t['miles']:,} mi")
+
+        # Biggest haul by weight
+        by_weight = sorted(truckers, key=lambda x: x["biggest_weight"], reverse=True)
+        if by_weight and by_weight[0]["biggest_weight"] > 0:
+            t = by_weight[0]
+            lines.append(f"  |wHeaviest Single Haul:|n    |c{t['handle']}|n {t['biggest_weight']:,} lbs")
+
+        # Biggest haul by income
+        by_haul_income = sorted(truckers, key=lambda x: x["biggest_income"], reverse=True)
+        if by_haul_income and by_haul_income[0]["biggest_income"] > 0:
+            t = by_haul_income[0]
+            lines.append(f"  |wHighest Single Payout:|n   |c{t['handle']}|n |g${t['biggest_income']:,}|n")
 
         self.caller.msg("\n".join(lines))
 
