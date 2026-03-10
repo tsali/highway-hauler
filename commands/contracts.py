@@ -53,7 +53,10 @@ def generate_contracts(city_key, count=5):
     all_cities = [k for k in CITIES if k != city_key]
 
     contracts = []
-    for _ in range(count):
+    for _ in range(count * 2):  # Generate extra, then filter
+        if len(contracts) >= count:
+            break
+
         dest_key = random.choice(all_cities)
         dest_data = CITIES.get(dest_key, {})
         cargo_key = random.choice(list(CARGO_TYPES.keys()))
@@ -63,8 +66,14 @@ def generate_contracts(city_key, count=5):
         if distance is None or distance == 0:
             continue
 
-        # Calculate pay
-        base_pay = int(distance * cargo_data["base_pay_per_mile"])
+        # Weight varies 60-100% of base (partial loads, different quantities)
+        weight = int(cargo_data["weight"] * random.uniform(0.60, 1.0))
+        # Round to nearest 500 for cleaner display
+        weight = max(500, (weight // 500) * 500)
+
+        # Calculate pay (scaled to actual weight vs base weight)
+        weight_ratio = weight / cargo_data["weight"]
+        base_pay = int(distance * cargo_data["base_pay_per_mile"] * weight_ratio)
         # Add urgency bonus (20-60% extra for time-sensitive)
         urgency = random.choice(["standard", "standard", "rush", "urgent"])
         urgency_mult = {"standard": 1.0, "rush": 1.3, "urgent": 1.6}[urgency]
@@ -82,7 +91,7 @@ def generate_contracts(city_key, count=5):
         contracts.append({
             "cargo_key": cargo_key,
             "cargo_name": cargo_data["name"],
-            "weight": cargo_data["weight"],
+            "weight": weight,
             "desc": cargo_data["desc"],
             "origin": city_key,
             "origin_name": city_data.get("name", city_key),
@@ -197,11 +206,13 @@ class CmdAccept(Command):
         contract = contracts[idx]
 
         # Check weight capacity
-        new_weight = caller.current_cargo_weight + contract["weight"]
+        current_weight = caller.current_cargo_weight
+        new_weight = current_weight + contract["weight"]
         if new_weight > caller.cargo_capacity:
             caller.msg(
                 f"|rToo heavy! This cargo weighs {contract['weight']:,} lbs. "
-                f"You have {caller.cargo_capacity - caller.current_cargo_weight:,} lbs of space left.|n"
+                f"Current load: {current_weight:,}/{caller.cargo_capacity:,} lbs. "
+                f"You have {caller.cargo_capacity - current_weight:,} lbs of space left.|n"
             )
             return
 
