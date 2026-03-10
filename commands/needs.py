@@ -118,11 +118,10 @@ class CmdEat(Command):
             caller.msg("|rYou can't eat while doing 70 on the interstate!|n")
             return
 
-        city_key = None
-        if caller.location and hasattr(caller.location, 'db'):
-            city_key = caller.location.db.city_key
-
-        if not city_key:
+        # Allow eating at cities and rest stops
+        from typeclasses.rooms import CityRoom, RestStopRoom
+        at_valid = isinstance(caller.location, (CityRoom, RestStopRoom))
+        if not at_valid:
             caller.msg("|rNo diner here. Find a city or truck stop.|n")
             return
 
@@ -281,12 +280,10 @@ class CmdRestroom(Command):
             caller.msg("|rActually, no. Find a rest stop.|n")
             return
 
-        city_key = None
-        if caller.location and hasattr(caller.location, 'db'):
-            city_key = caller.location.db.city_key
-
-        # Also allow if mandatory_rest (pulled over roadside)
-        if not city_key and not caller.db.mandatory_rest:
+        # Allow restroom at cities, rest stops, or mandatory rest
+        from typeclasses.rooms import CityRoom, RestStopRoom
+        at_valid = isinstance(caller.location, (CityRoom, RestStopRoom)) or caller.db.mandatory_rest
+        if not at_valid:
             caller.msg("|rNo restroom here. Find a city or truck stop.|n")
             return
 
@@ -370,12 +367,10 @@ class CmdSleep(Command):
             caller.msg("|rYou can't sleep at the wheel! ...Well, you CAN, but you shouldn't.|n")
             return
 
-        city_key = None
-        if caller.location and hasattr(caller.location, 'db'):
-            city_key = caller.location.db.city_key
-
-        # Allow sleep at city, or if mandatory_rest (roadside)
-        if not city_key and not caller.db.mandatory_rest:
+        # Allow sleep at cities, rest stops, or mandatory rest (roadside)
+        from typeclasses.rooms import CityRoom, RestStopRoom
+        at_valid = isinstance(caller.location, (CityRoom, RestStopRoom)) or caller.db.mandatory_rest
+        if not at_valid:
             caller.msg("|rNowhere safe to park. Find a city or rest area.|n")
             return
 

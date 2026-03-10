@@ -18,7 +18,7 @@ class CmdStatus(Command):
     """
 
     key = "status"
-    aliases = ["stats", "truck"]
+    aliases = ["stats", "rig"]
     locks = "cmd:all()"
 
     def func(self):
