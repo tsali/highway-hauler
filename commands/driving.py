@@ -2,21 +2,199 @@
 Highway Hauler — Driving and navigation commands.
 """
 
+import heapq
+import random
 import time
 from evennia.commands.command import Command
 from world.cities import CITIES, HIGHWAYS
 
 
+def build_adjacency():
+    """Build adjacency dict from HIGHWAYS: {city: [(neighbor, dist, hwy), ...]}."""
+    adj = {}
+    for a, b, dist, hwy in HIGHWAYS:
+        adj.setdefault(a, []).append((b, dist, hwy))
+        adj.setdefault(b, []).append((a, dist, hwy))
+    return adj
+
+
+def dijkstra_path(start, end):
+    """
+    Find shortest-distance path from start to end using Dijkstra's algorithm.
+    Returns (total_distance, [(city_key, dist_from_prev, highway), ...]) or None.
+    The first entry has dist_from_prev=0 (the start city).
+    """
+    adj = build_adjacency()
+    if start not in adj or end not in adj:
+        return None
+
+    # dist_so_far[city] = (total_dist, prev_city, dist_from_prev, highway_from_prev)
+    dist_so_far = {start: (0, None, 0, "")}
+    heap = [(0, start)]
+    visited = set()
+
+    while heap:
+        curr_dist, curr = heapq.heappop(heap)
+        if curr in visited:
+            continue
+        visited.add(curr)
+
+        if curr == end:
+            # Reconstruct path
+            path = []
+            node = end
+            while node is not None:
+                total, prev, seg_dist, hwy = dist_so_far[node]
+                path.append((node, seg_dist, hwy))
+                node = prev
+            path.reverse()
+            return (curr_dist, path)
+
+        for neighbor, edge_dist, hwy in adj.get(curr, []):
+            if neighbor in visited:
+                continue
+            new_dist = curr_dist + edge_dist
+            if neighbor not in dist_so_far or new_dist < dist_so_far[neighbor][0]:
+                dist_so_far[neighbor] = (new_dist, curr, edge_dist, hwy)
+                heapq.heappush(heap, (new_dist, neighbor))
+
+    return None
+
+
+def find_city_by_name(target):
+    """Match a target string to a city key. Returns city_key or None."""
+    target_lower = target.lower()
+    for city_key, city_data in CITIES.items():
+        city_name = city_data.get("name", "").lower()
+        if target_lower == city_key or target_lower in city_name or city_name.startswith(target_lower):
+            return city_key
+    return None
+
+
+def get_direct_connection(city_key, dest_key):
+    """
+    Check if dest_key is directly connected to city_key.
+    Returns (distance, highway) or None.
+    """
+    best = None
+    for a, b, dist, hwy in HIGHWAYS:
+        if (a == city_key and b == dest_key) or (b == city_key and a == dest_key):
+            if best is None or dist < best[0]:
+                best = (dist, hwy)
+    return best
+
+
+def apply_gps_unreliability(trucker, dest_key, dist, hwy, city_key):
+    """
+    Apply GPS unreliability for one leg of a GPS route.
+    Returns (dest_key, dist, hwy, detour_msg) — possibly modified.
+    """
+    reliability = trucker.gps_reliability
+    if random.random() < reliability:
+        # GPS works correctly this leg
+        return dest_key, dist, hwy, None
+
+    # GPS malfunction — pick one of two failure modes
+    if random.random() < 0.5:
+        # Mode A: Extra miles on this leg (detour)
+        extra = random.randint(10, 30)
+        msg = f"|y[GPS] Recalculating... Taking a detour. +{extra} extra miles.|n"
+        return dest_key, dist + extra, hwy, msg
+    else:
+        # Mode B: Route through a random adjacent city instead
+        adj = build_adjacency()
+        neighbors = adj.get(city_key, [])
+        # Filter out the correct destination to pick a wrong one
+        wrong_neighbors = [(n, d, h) for n, d, h in neighbors if n != dest_key]
+        if wrong_neighbors:
+            wrong_dest, wrong_dist, wrong_hwy = random.choice(wrong_neighbors)
+            wrong_name = CITIES.get(wrong_dest, {}).get("name", wrong_dest)
+            msg = f"|y[GPS] Wrong turn! GPS sent you through {wrong_name} instead!|n"
+            return wrong_dest, wrong_dist, wrong_hwy, msg
+        else:
+            # No wrong neighbors available, fall back to extra miles
+            extra = random.randint(10, 30)
+            msg = f"|y[GPS] Recalculating... Taking a detour. +{extra} extra miles.|n"
+            return dest_key, dist + extra, hwy, msg
+
+
+def start_driving_leg(caller, city_key, dest_key, dist, hwy, gps_route=None, gps_leg=False):
+    """
+    Start driving one leg. Shared by initial drive and GPS auto-continue.
+    gps_route: remaining cities after this leg (list of city keys).
+    gps_leg: True if this is an auto-continued GPS leg (shorter output).
+    """
+    dest_data = CITIES.get(dest_key, {})
+    dest_name = dest_data.get("name", dest_key)
+    dest_state = dest_data.get("state", "")
+
+    # Check fuel
+    fuel_needed = dist * caller.fuel_consumption
+    if caller.db.fuel < fuel_needed * 0.3:
+        caller.msg(f"|rNot enough fuel! You need at least {fuel_needed * 0.3:.0f} gallons for {dest_name}.|n")
+        caller.msg("|wType |yrefuel|w to fill up first.|n")
+        caller.db.gps_route = []
+        return False
+
+    # Set driving state
+    caller.db.driving_to = dest_key
+    caller.db.driving_from = city_key
+    caller.db.driving_miles_left = dist
+    caller.db.driving_highway = hwy
+    caller.db.current_weather = caller.db.current_weather or "clear"
+    caller.db.gps_route = gps_route or []
+
+    from typeclasses.scripts import DrivingScript, TICK_INTERVAL, GAME_MINUTES_PER_TICK
+
+    eta_ticks = dist / (caller.speed * (GAME_MINUTES_PER_TICK / 60.0))
+    eta_real_seconds = eta_ticks * TICK_INTERVAL
+
+    if gps_leg:
+        # Shorter message for GPS auto-continue
+        caller.msg(f"|c[GPS] Next stop -- {dest_name}, {dest_state} ({hwy}, {dist} mi, ~{eta_real_seconds:.0f}s)|n")
+    else:
+        from_data = CITIES.get(city_key, {})
+        from_name = from_data.get("name", city_key)
+        fuel_needed_display = dist * caller.fuel_consumption
+
+        caller.msg(f"\n|g{'=' * 50}|n")
+        caller.msg(f"|g  HITTING THE ROAD|n")
+        caller.msg(f"|g{'=' * 50}|n")
+        caller.msg(f"|wFrom:|n {from_name}")
+        caller.msg(f"|wTo:|n {dest_name}, {dest_state}")
+        caller.msg(f"|wHighway:|n {hwy}")
+        caller.msg(f"|wDistance:|n {dist} miles")
+        caller.msg(f"|wETA:|n ~{eta_real_seconds:.0f} seconds (real time)")
+        caller.msg(f"|wFuel needed:|n ~{fuel_needed_display:.0f} gallons")
+        caller.msg(f"|g{'=' * 50}|n\n")
+
+    # Announce to room
+    if caller.location:
+        caller.location.msg_contents(
+            f"|c{caller.db.handle or caller.key}|n pulls out onto |y{hwy}|n heading for |w{dest_name}|n.",
+            exclude=[caller],
+        )
+
+    # Start the driving script
+    caller.scripts.add(DrivingScript)
+    return True
+
+
 class CmdDrive(Command):
     """
-    Drive to a connected city.
+    Drive to a connected city, or use GPS to auto-route to distant cities.
 
     Usage:
-        drive <city name>
+        drive <city name>    - Drive to a city (adjacent, or GPS-routed if you have GPS)
+        drive stop           - Cancel GPS auto-routing mid-trip
+        drive cancel         - Cancel GPS auto-routing mid-trip
 
-    Start driving to a city connected by highway from your current location.
-    You must be at a city (not already on the road) to start driving.
-    You must have enough fuel to make the trip.
+    If the destination is directly connected by highway, you drive there normally.
+    If it's not directly connected and you have a GPS upgrade, the GPS will plan
+    a multi-stop route and auto-drive you through intermediate cities.
+
+    GPS units are unreliable — each leg has a chance of wrong turns or detours
+    depending on your GPS quality level.
     """
 
     key = "drive"
@@ -26,17 +204,35 @@ class CmdDrive(Command):
     def func(self):
         caller = self.caller
 
+        if not self.args:
+            caller.msg("|wUsage: drive <city name>|n")
+            caller.msg("|wUsage: drive stop|w -- cancel GPS auto-routing|n")
+            return
+
+        # Handle drive stop / drive cancel
+        arg = self.args.strip().lower()
+        if arg in ("stop", "cancel"):
+            gps_route = caller.db.gps_route or []
+            if gps_route:
+                caller.db.gps_route = []
+                caller.msg("|y[GPS] Auto-routing cancelled.|n")
+                if caller.is_driving:
+                    caller.msg("|wYou'll finish this leg, then stop.|n")
+                else:
+                    caller.msg("|wGPS route cleared.|n")
+            elif caller.is_driving:
+                caller.msg("|rYou're on the road but have no GPS route to cancel.|n")
+            else:
+                caller.msg("|wNo GPS route active.|n")
+            return
+
         if caller.is_driving:
-            caller.msg("|rYou're already on the road! Type |wstop|r to pull over (not implemented yet).|n")
+            caller.msg("|rYou're already on the road! Type |wdrive stop|r to cancel GPS routing.|n")
             return
 
         if caller.db.mandatory_rest:
             caller.msg("|rDOT regulations: You must sleep before driving again.|n")
             caller.msg("|rType |wsleep|r to rest.|n")
-            return
-
-        if not self.args:
-            caller.msg("|wUsage: drive <city name>|n")
             return
 
         # Get current city
@@ -50,6 +246,8 @@ class CmdDrive(Command):
 
         # Find matching destination
         target = self.args.strip().lower()
+
+        # First check direct connections
         connections = []
         for a, b, dist, hwy in HIGHWAYS:
             if a == city_key:
@@ -63,70 +261,84 @@ class CmdDrive(Command):
             if dest not in dest_map or dist < dest_map[dest][0]:
                 dest_map[dest] = (dist, hwy)
 
-        # Match target to a destination
-        matched = None
+        # Match target to a direct destination
+        matched_direct = None
         for dest_key, (dist, hwy) in dest_map.items():
             dest_data = CITIES.get(dest_key, {})
             dest_name = dest_data.get("name", "").lower()
             if target in dest_name or target == dest_key or dest_name.startswith(target):
-                matched = (dest_key, dist, hwy)
+                matched_direct = (dest_key, dist, hwy)
                 break
 
-        if not matched:
+        if matched_direct:
+            # Direct connection — drive normally (no GPS needed)
+            dest_key, dist, hwy = matched_direct
+            caller.db.gps_route = []
+            start_driving_leg(caller, city_key, dest_key, dist, hwy)
+            return
+
+        # Not a direct connection — try to find the city anywhere on the map
+        dest_city_key = find_city_by_name(target)
+
+        if not dest_city_key:
             caller.msg(f"|rNo highway to '{self.args.strip()}' from here.|n")
             caller.msg("|wType |ylook|w to see connected cities.|n")
             return
 
-        dest_key, dist, hwy = matched
-        dest_data = CITIES.get(dest_key, {})
-        dest_name = dest_data.get("name", dest_key)
-        dest_state = dest_data.get("state", "")
-
-        # Check fuel
-        fuel_needed = dist * caller.fuel_consumption
-        if caller.db.fuel < fuel_needed * 0.3:  # Need at least 30% of fuel for the trip
-            caller.msg(f"|rNot enough fuel! You need at least {fuel_needed * 0.3:.0f} gallons for {dest_name}.|n")
-            caller.msg("|wType |yrefuel|w to fill up first.|n")
+        if dest_city_key == city_key:
+            caller.msg("|rYou're already there!|n")
             return
 
-        # Start driving
-        caller.db.driving_to = dest_key
-        caller.db.driving_from = city_key
-        caller.db.driving_miles_left = dist
-        caller.db.driving_highway = hwy
-        caller.db.current_weather = "clear"
+        # Non-adjacent city — need GPS
+        if not caller.has_gps:
+            dest_name = CITIES.get(dest_city_key, {}).get("name", dest_city_key)
+            caller.msg(f"|r{dest_name} isn't directly connected by highway.|n")
+            caller.msg("|wUse |ymap|w to plan your route, or buy a GPS upgrade to auto-route.|n")
+            return
 
-        from_data = CITIES.get(city_key, {})
-        from_name = from_data.get("name", city_key)
+        # GPS auto-routing via Dijkstra
+        result = dijkstra_path(city_key, dest_city_key)
+        if not result:
+            caller.msg(f"|rNo route found to '{self.args.strip()}'.|n")
+            return
 
-        # Estimate travel time
-        eta_minutes = (dist / caller.speed) * 60
-        eta_ticks = dist / (caller.speed * (GAME_MINUTES_PER_TICK / 60.0))
-        eta_real_seconds = eta_ticks * TICK_INTERVAL
+        total_dist, path = result
+        # path is [(start, 0, ""), (city2, dist, hwy), ..., (dest, dist, hwy)]
+        # We need the legs: path[1], path[2], ..., path[-1]
+        legs = path[1:]  # each is (city_key, segment_dist, highway)
+        if not legs:
+            caller.msg("|rYou're already there!|n")
+            return
 
-        from typeclasses.scripts import DrivingScript, TICK_INTERVAL, GAME_MINUTES_PER_TICK
+        # Display the GPS planned route
+        route_names = []
+        for leg_city, leg_dist, leg_hwy in legs:
+            route_names.append(CITIES.get(leg_city, {}).get("name", leg_city))
+        from_name = CITIES.get(city_key, {}).get("name", city_key)
 
-        caller.msg(f"\n|g{'=' * 50}|n")
-        caller.msg(f"|g  HITTING THE ROAD|n")
-        caller.msg(f"|g{'=' * 50}|n")
-        caller.msg(f"|wFrom:|n {from_name}")
-        caller.msg(f"|wTo:|n {dest_name}, {dest_state}")
-        caller.msg(f"|wHighway:|n {hwy}")
-        caller.msg(f"|wDistance:|n {dist} miles")
-        caller.msg(f"|wETA:|n ~{eta_real_seconds:.0f} seconds (real time)")
-        caller.msg(f"|wFuel needed:|n ~{fuel_needed:.0f} gallons")
-        caller.msg(f"|g{'=' * 50}|n\n")
+        caller.msg(f"|c[GPS] Route: {from_name} -> {' -> '.join(route_names)} ({len(legs)} stop(s), {total_dist:,} mi)|n")
 
-        # Announce to room
-        if caller.location:
-            caller.location.msg_contents(
-                f"|c{caller.db.handle or caller.key}|n pulls out onto |y{hwy}|n heading for |w{dest_name}|n.",
-                exclude=[caller],
-            )
+        # Store remaining legs (after the first one) as the GPS route
+        remaining = [leg_city for leg_city, _, _ in legs[1:]]
 
-        # Move to a "highway" state (stay in room but mark as driving)
-        # The driving script handles everything
-        caller.scripts.add(DrivingScript)
+        # Start the first leg, applying GPS unreliability
+        first_dest, first_dist, first_hwy = legs[0]
+        first_dest, first_dist, first_hwy, detour_msg = apply_gps_unreliability(
+            caller, first_dest, first_dist, first_hwy, city_key
+        )
+        if detour_msg:
+            caller.msg(detour_msg)
+            # If GPS routed through wrong city, we need to recalculate remaining route
+            if first_dest != legs[0][0]:
+                # Wrong city — recalc remaining from that wrong city to final dest
+                new_result = dijkstra_path(first_dest, dest_city_key)
+                if new_result:
+                    _, new_path = new_result
+                    remaining = [c for c, _, _ in new_path[1:]]
+                else:
+                    remaining = []
+
+        start_driving_leg(caller, city_key, first_dest, first_dist, first_hwy, gps_route=remaining)
 
 
 class CmdRefuel(Command):
@@ -206,30 +418,31 @@ class CmdMap(Command):
     def func(self):
         caller = self.caller
 
-        # Simple text-based region map
+        # Full 55-city ASCII interstate map
         lines = [
-            "|w" + "=" * 65 + "|n",
+            "|w" + "=" * 78 + "|n",
             "|w  HIGHWAY HAULER — INTERSTATE MAP|n",
-            "|w" + "=" * 65 + "|n",
+            "|w" + "=" * 78 + "|n",
             "",
-            "|w  SEA---SPO                              BUF---BOS|n",
-            "|w   |        \\          MIN---SXF          |    / |n",
-            "|w  POR       BIL---I90---/     |       PIT--CLE  NYC|n",
-            "|w   |                   DSM---OMA       |   |    / |n",
-            "|w  SAC---SLC---BOI       |     \\      COL--CIN  PHL|n",
-            "|w   |    |    CHY---DEN  KC     |      |       RIC|n",
-            "|w  SFO   |         |     |    STL---IND--CHI   |  |n",
-            "|w        LV       ABQ   WIC    |    |   DET  CHA|n",
-            "|w         \\       / \\    |    MEM--NAS       |   |n",
-            "|w         PHX--TUC  ELP  OKC   |        ATL--|n",
-            "|w          |              |   LR          |  |n",
-            "|w         LA---SD   SAT--DAL         JAX----|n",
-            "|w                    |    |          |      |n",
-            "|w                   HOU---+       MIA      |n",
-            "|w                    |                      |n",
-            "|w                   NOR                     |n",
+            "|w SEA---SPO           BIL            MIN--MIL                BUF--------BOS|n",
+            "|w  |       \\           |              |    \\                  |        /   |n",
+            "|w POR       BOI        |          SXF-+    CHI---DET        PIT--CLE NYC  |n",
+            "|w  |         |         |              |     |     |        /      |   /   |n",
+            "|w SAC       SLC-------CHY         DSM-+    IND    \\      /  COL  |  PHL  |n",
+            "|w  |         |         |              |     |      \\    /    |   CIN  |   |n",
+            "|w SFO        |        DEN         OMA-+    STL      \\  /    |  / |  RIC  |n",
+            "|w             |        |              |     |        \\/    LOU---+        |n",
+            "|w            LV        |            KC-+    |        /\\     |   |        |n",
+            "|w             \\        |              |    MEM      /  \\   NAS  CHA      |n",
+            "|w             PHX     ABQ          WIC-+    |      /    \\   |     \\      |n",
+            "|w            / \\       |              |     LR    /     BHM  \\    ATL    |n",
+            "|w          LA   TUC    |           OKC-+    |    /       |    JAX   |    |n",
+            "|w           |     \\   ELP             |    NOR  /       MGM    |   |    |n",
+            "|w          SD      \\   |       SAT--DAL    |  /          |   TLH   |    |n",
+            "|w                   \\  |       /      |   HOU       MOB--PNS  |    |    |n",
+            "|w                    +-+------+       +----+----------+---+---+   MIA    |n",
             "",
-            "|wYour location is shown when you |ylook|w at a city.|n",
-            "|wType |ycontracts|w for cargo, |ydrive <city>|w to travel.|n",
+            "|wUse |ymap|w to plan your route. Type |ydrive <city>|w to travel.|n",
+            "|wType |ycontracts|w to find cargo for your next haul.|n",
         ]
         caller.msg("\n".join(lines))

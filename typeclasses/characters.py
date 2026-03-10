@@ -49,6 +49,15 @@ TRUCK_UPGRADES = {
             {"name": "Cobra 29 LTD", "range": 1, "cost": 500},
         ],
     },
+    "gps": {
+        "name": "GPS Navigation",
+        "levels": [
+            {"name": "None (Paper Map)", "reliability": 0, "cost": 0},
+            {"name": "Garmin DriveSmart", "reliability": 0.70, "cost": 15000},
+            {"name": "Rand McNally TND", "reliability": 0.85, "cost": 35000},
+            {"name": "Trucker's GPS Pro", "reliability": 0.95, "cost": 60000},
+        ],
+    },
 }
 
 
@@ -94,6 +103,8 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.tank_level = 0
         self.db.trailer_level = 0
         self.db.cb_level = 0
+        self.db.gps_level = 0
+        self.db.gps_route = []  # remaining cities for GPS auto-routing
         self.db.driving_to = None
         self.db.driving_from = None
         self.db.driving_miles_left = 0
@@ -134,6 +145,17 @@ class Trucker(ObjectParent, DefaultCharacter):
         return (self.db.cb_level or 0) > 0
 
     @property
+    def has_gps(self):
+        """Whether the trucker has a GPS unit."""
+        return (self.db.gps_level or 0) > 0
+
+    @property
+    def gps_reliability(self):
+        """GPS reliability (0.0-1.0) based on upgrade level."""
+        level = self.db.gps_level or 0
+        return TRUCK_UPGRADES["gps"]["levels"][level]["reliability"]
+
+    @property
     def current_cargo_weight(self):
         """Total weight of current cargo."""
         return sum(c.get("weight", 0) for c in (self.db.current_cargo or []))
@@ -156,6 +178,7 @@ class Trucker(ObjectParent, DefaultCharacter):
         tank = TRUCK_UPGRADES["tank"]["levels"][self.db.tank_level or 0]
         trailer = TRUCK_UPGRADES["trailer"]["levels"][self.db.trailer_level or 0]
         cb = TRUCK_UPGRADES["cb_radio"]["levels"][self.db.cb_level or 0]
+        gps = TRUCK_UPGRADES["gps"]["levels"][self.db.gps_level or 0]
 
         fuel_pct = (self.db.fuel / self.fuel_capacity) * 100 if self.fuel_capacity else 0
         fuel_bar = self._bar(fuel_pct)
@@ -174,6 +197,7 @@ class Trucker(ObjectParent, DefaultCharacter):
             f"|wFuel:|n {self.db.fuel:.0f}/{self.fuel_capacity} gal {fuel_bar}",
             f"|wTrailer:|n {trailer['name']} ({self.current_cargo_weight:,}/{self.cargo_capacity:,} lbs)",
             f"|wCB Radio:|n {cb['name']}",
+            f"|wGPS:|n {gps['name']}" + (f" ({gps['reliability']*100:.0f}% reliable)" if gps['reliability'] > 0 else ""),
         ]
 
         # Trucker needs
@@ -198,6 +222,11 @@ class Trucker(ObjectParent, DefaultCharacter):
             lines.append(f"|wHeading to:|n {self.db.driving_to}")
             lines.append(f"|wMiles left:|n {self.db.driving_miles_left:.0f}")
             lines.append(f"|wHighway:|n {self.db.driving_highway}")
+            gps_route = self.db.gps_route or []
+            if gps_route:
+                from world.cities import CITIES
+                route_names = [CITIES.get(k, {}).get("name", k) for k in gps_route]
+                lines.append(f"|wGPS Route:|n {' -> '.join(route_names)} ({len(gps_route)} stop(s) remaining)")
 
         return "\n".join(lines)
 

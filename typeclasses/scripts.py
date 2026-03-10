@@ -392,6 +392,7 @@ class DrivingScript(DefaultScript):
             trucker.msg(f"|rError: Could not find room for {dest_name}.|n")
 
         # Clear driving state
+        arrived_city = dest_key
         trucker.db.driving_to = None
         trucker.db.driving_from = None
         trucker.db.driving_miles_left = 0
@@ -409,7 +410,73 @@ class DrivingScript(DefaultScript):
         from commands.encounters import trigger_lot_lizard
         trigger_lot_lizard(trucker)
 
+        # Stop this driving script instance
         self.stop()
+
+        # GPS auto-continue: if there are remaining cities in the GPS route, drive to the next one
+        gps_route = trucker.db.gps_route or []
+        if gps_route:
+            next_city = gps_route[0]
+            remaining_after = list(gps_route[1:])
+
+            # Check if mandatory rest triggered during this leg
+            if trucker.db.mandatory_rest:
+                trucker.msg("|y[GPS] Auto-routing paused -- DOT mandatory rest required.|n")
+                trucker.db.gps_route = []
+                return
+
+            # Find the direct connection from arrived city to next GPS waypoint
+            from commands.driving import (
+                get_direct_connection, apply_gps_unreliability,
+                start_driving_leg, dijkstra_path,
+            )
+            conn = get_direct_connection(arrived_city, next_city)
+            if not conn:
+                # GPS route is stale (e.g. wrong-turn reroute left a gap) — recalculate
+                final_dest = gps_route[-1]
+                result = dijkstra_path(arrived_city, final_dest)
+                if result:
+                    _, new_path = result
+                    new_legs = new_path[1:]
+                    if new_legs:
+                        next_city = new_legs[0][0]
+                        conn = (new_legs[0][1], new_legs[0][2])
+                        remaining_after = [c for c, _, _ in new_legs[1:]]
+                    else:
+                        trucker.msg("|y[GPS] You've arrived at your final destination.|n")
+                        trucker.db.gps_route = []
+                        return
+                else:
+                    trucker.msg("|r[GPS] Cannot find a route to continue. Auto-routing cancelled.|n")
+                    trucker.db.gps_route = []
+                    return
+
+            dist, hwy = conn
+
+            # Apply GPS unreliability for this leg
+            actual_dest, actual_dist, actual_hwy, detour_msg = apply_gps_unreliability(
+                trucker, next_city, dist, hwy, arrived_city
+            )
+            if detour_msg:
+                trucker.msg(detour_msg)
+                # If GPS routed through wrong city, recalculate remaining
+                if actual_dest != next_city:
+                    final_dest = gps_route[-1]
+                    new_result = dijkstra_path(actual_dest, final_dest)
+                    if new_result:
+                        _, new_path = new_result
+                        remaining_after = [c for c, _, _ in new_path[1:]]
+                    else:
+                        remaining_after = []
+
+            # Show how many stops remain
+            if remaining_after:
+                trucker.msg(f"|c[GPS] {len(remaining_after)} more stop(s) after this.|n")
+
+            start_driving_leg(
+                trucker, arrived_city, actual_dest, actual_dist, actual_hwy,
+                gps_route=remaining_after, gps_leg=True,
+            )
 
 
 class ContractExpiryScript(DefaultScript):

@@ -33,7 +33,7 @@ class CmdUpgrade(Command):
         upgrade          - List available upgrades
         upgrade <type>   - Buy the next level of an upgrade
 
-    Types: engine, tank, trailer, cb
+    Types: engine, tank, trailer, cb, gps
     Must be at a mid-size city or larger.
     """
 
@@ -67,7 +67,7 @@ class CmdUpgrade(Command):
             upgrade_type = "cb_radio"
 
         if upgrade_type not in TRUCK_UPGRADES:
-            caller.msg(f"|rUnknown upgrade type. Options: engine, tank, trailer, cb|n")
+            caller.msg(f"|rUnknown upgrade type. Options: engine, tank, trailer, cb, gps|n")
             return
 
         self._buy_upgrade(caller, upgrade_type)
