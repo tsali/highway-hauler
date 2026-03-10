@@ -146,6 +146,76 @@ class CmdUpgrade(Command):
             caller.msg(f"|wType |yupgrade {utype}|w again to confirm, or anything else to cancel.|n")
 
 
+class CmdRelocate(Command):
+    """
+    Change your home city to where you are now.
+
+    Usage:
+        relocate
+
+    Costs $2,500. You must be at a city (not driving or at a rest stop).
+    """
+
+    key = "relocate"
+    aliases = ["movehome", "sethome"]
+    locks = "cmd:all()"
+
+    COST = 2500
+
+    def func(self):
+        caller = self.caller
+
+        if caller.is_driving:
+            caller.msg("|rCan't relocate while driving!|n")
+            return
+
+        from typeclasses.rooms import CityRoom
+        if not caller.location or not isinstance(caller.location, CityRoom):
+            caller.msg("|rYou need to be at a city to relocate. Can't set a rest stop as home.|n")
+            return
+
+        city_key = caller.location.db.city_key
+        if not city_key:
+            caller.msg("|rCan't determine what city you're in.|n")
+            return
+
+        if city_key == caller.db.home_city:
+            caller.msg("|yYou're already home!|n")
+            return
+
+        from world.cities import CITIES
+        city_data = CITIES.get(city_key, {})
+        city_name = city_data.get("name", city_key)
+        city_state = city_data.get("state", "")
+
+        old_key = caller.db.home_city or ""
+        old_data = CITIES.get(old_key, {})
+        old_name = old_data.get("name", old_key)
+
+        # Confirmation step
+        pending = getattr(caller.ndb, 'pending_relocate', None)
+        if pending and pending == city_key:
+            caller.ndb.pending_relocate = None
+            if (caller.db.money or 0) < self.COST:
+                caller.msg(f"|rNot enough money! Need ${self.COST:,}, you have ${caller.db.money:,}.|n")
+                return
+            caller.db.money = (caller.db.money or 0) - self.COST
+            caller.db.home_city = city_key
+            caller.msg(f"|g*** HOME RELOCATED ***|n")
+            caller.msg(f"|wOld home:|n {old_name}")
+            caller.msg(f"|wNew home:|n {city_name}, {city_state}")
+            caller.msg(f"|wCost:|n ${self.COST:,}")
+            caller.msg(f"|wMoney remaining:|n |g${caller.db.money:,}|n")
+        else:
+            caller.ndb.pending_relocate = city_key
+            caller.msg(f"|y--- RELOCATE HOME ---")
+            caller.msg(f"|wCurrent home:|n {old_name}")
+            caller.msg(f"|wNew home:|n {city_name}, {city_state}")
+            caller.msg(f"|wCost:|n |r${self.COST:,}|n")
+            caller.msg(f"|wYour money:|n |g${caller.db.money:,}|n")
+            caller.msg(f"|wType |yrelocate|w again to confirm.|n")
+
+
 class CmdCB(Command):
     """
     CB Radio — broadcast a message to all truckers.

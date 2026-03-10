@@ -82,6 +82,7 @@ Players start as rookie truckers with a beat-up rig and $500. Pick up cargo cont
 | `status` | Full truck and trucker status display |
 | `board` / `board erase <#>` | Read or manage city message board |
 | `post <message>` | Post to the city message board |
+| `relocate` | Change your home city to where you are now ($2,500) |
 
 ### Social
 | Command | Description |

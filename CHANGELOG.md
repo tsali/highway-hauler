@@ -1,5 +1,10 @@
 # Changelog — Highway Hauler
 
+## v0.3.2a — 2026-03-10
+
+### Added
+- **Relocate command**: `relocate` to change your home city to wherever you are ($2,500, confirmation required)
+
 ## v0.3.1a — 2026-03-10
 
 ### Added

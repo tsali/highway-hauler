@@ -10,7 +10,7 @@ from evennia.commands.default.cmdset_unloggedin import UnloggedinCmdSet as BaseU
 from commands.driving import CmdDrive, CmdRefuel, CmdStop, CmdMap, CmdSpeed
 from commands.contracts import CmdContracts, CmdAccept, CmdCargo, CmdDeliver
 from commands.trucker import (
-    CmdStatus, CmdUpgrade, CmdCB, CmdWho, CmdScores, CmdTrivia, CmdTriviaAnswer,
+    CmdStatus, CmdUpgrade, CmdRelocate, CmdCB, CmdWho, CmdScores, CmdTrivia, CmdTriviaAnswer,
 )
 from commands.encounters import CmdLotLizardResponse, CmdGangResponse
 from commands.needs import CmdEat, CmdDinerChoice, CmdRestroom, CmdSleep, CmdNoInput, CmdNoMatch
@@ -42,6 +42,7 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         # Trucker utilities
         self.add(CmdStatus())
         self.add(CmdUpgrade())
+        self.add(CmdRelocate())
         self.add(CmdCB())
         self.add(CmdWho())
         self.add(CmdScores())
