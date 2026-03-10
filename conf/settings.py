@@ -41,8 +41,9 @@ CMDSET_ACCOUNT = "commands.default_cmdsets.AccountCmdSet"
 CMDSET_UNLOGGEDIN = "commands.default_cmdsets.UnloggedinCmdSet"
 CMDSET_SESSION = "commands.default_cmdsets.SessionCmdSet"
 
-# Auto-create character and puppet on login
-AUTO_CREATE_CHARACTER_WITH_ACCOUNT = True
+# Don't auto-create character — Account.at_post_login handles it
+# so the character starts in the chargen room, not Limbo
+AUTO_CREATE_CHARACTER_WITH_ACCOUNT = False
 AUTO_PUPPET_ON_LOGIN = True
 MAX_NR_CHARACTERS = 1
 

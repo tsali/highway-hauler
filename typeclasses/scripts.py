@@ -46,6 +46,16 @@ class DrivingScript(DefaultScript):
             self.stop()
             return
 
+        # --- Tick trucker needs ---
+        self._tick_needs(trucker)
+
+        # Check mandatory rest (DOT hours limit)
+        if trucker.db.mandatory_rest:
+            trucker.msg("|r*** DOT VIOLATION: You must rest before driving again. ***|n")
+            trucker.msg("|rPulling over at the next available stop.|n")
+            self._force_stop(trucker)
+            return
+
         # Calculate miles this tick
         speed = trucker.speed
         miles_this_tick = speed * (GAME_MINUTES_PER_TICK / 60.0)
@@ -59,6 +69,22 @@ class DrivingScript(DefaultScript):
             "fog": 0.7,
         }.get(weather, 1.0)
         miles_this_tick *= weather_speed_mod
+
+        # Needs-based speed penalties
+        needs_mod = 1.0
+        if (trucker.db.hunger or 0) >= 80:
+            needs_mod -= 0.05
+        if (trucker.db.bladder or 0) >= 80:
+            needs_mod -= 0.05
+        if (trucker.db.fatigue or 0) >= 80:
+            needs_mod -= 0.10
+            # Microsleep swerve chance
+            if random.random() < 0.15:
+                trucker.msg("|r*** Your eyes close for a second — you jerk the wheel! ***|n")
+                trucker.msg("|rYou swerve across the rumble strips. That was close!|n")
+                # Small delay penalty
+                trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(2, 5)
+        miles_this_tick *= max(0.5, needs_mod)
 
         # Consume fuel
         fuel_used = miles_this_tick * trucker.fuel_consumption
@@ -103,6 +129,89 @@ class DrivingScript(DefaultScript):
                 f"{speed * weather_speed_mod:.0f} mph"
                 f"{f' ({weather})' if weather != 'clear' else ''}"
             )
+
+    def _tick_needs(self, trucker):
+        """Increase trucker needs each driving tick (10s = ~15 game minutes)."""
+        stomach = trucker.db.stomach_issues or False
+
+        # Hunger: +2-3 per tick
+        hunger_inc = random.randint(2, 3)
+        trucker.db.hunger = min(100, (trucker.db.hunger or 0) + hunger_inc)
+
+        # Bladder: +3-4 per tick (2x if stomach issues)
+        bladder_inc = random.randint(3, 4)
+        if stomach:
+            bladder_inc *= 2
+        trucker.db.bladder = min(100, (trucker.db.bladder or 0) + bladder_inc)
+
+        # Fatigue: +2 per tick (+1 extra if stomach issues)
+        fatigue_inc = 2
+        if stomach:
+            fatigue_inc += 1
+        trucker.db.fatigue = min(100, (trucker.db.fatigue or 0) + fatigue_inc)
+
+        # Hours driving: +0.25 per tick (15 game minutes)
+        trucker.db.hours_driving = (trucker.db.hours_driving or 0) + 0.25
+
+        # Warnings
+        hunger = trucker.db.hunger or 0
+        bladder = trucker.db.bladder or 0
+        fatigue = trucker.db.fatigue or 0
+        hours = trucker.db.hours_driving or 0
+
+        if hunger >= 80 and random.random() < 0.4:
+            msgs = [
+                "|yYour stomach growls loud enough to hear over the engine.|n",
+                "|yYou haven't eaten in hours. The Cracker Barrel billboard is taunting you.|n",
+                "|yYou're so hungry you're eyeing the gas station sushi in your mind.|n",
+            ]
+            trucker.msg(random.choice(msgs))
+
+        if bladder >= 80 and random.random() < 0.4:
+            msgs = [
+                "|yYou really need to find a restroom. That last coffee was a mistake.|n",
+                "|yEvery pothole is a test of willpower right now.|n",
+                "|yYou're considering the Gatorade bottle option.|n",
+            ]
+            trucker.msg(random.choice(msgs))
+
+        if fatigue >= 80 and random.random() < 0.4:
+            msgs = [
+                "|yYour eyelids are getting heavy. The road lines are blurring together.|n",
+                "|yYou catch yourself drifting. Maybe pull over soon.|n",
+                "|yThe rumble strips wake you up. That's the third time this mile.|n",
+            ]
+            trucker.msg(random.choice(msgs))
+
+        # DOT mandatory rest at 16 hours
+        if hours >= 16:
+            trucker.msg("|r*** DOT HOURS OF SERVICE: 16 hours reached! ***|n")
+            trucker.msg("|rFederal regulations require you to stop and rest.|n")
+            trucker.msg("|rYou must sleep for 8 hours before driving again.|n")
+            trucker.db.mandatory_rest = True
+
+        # Stomach issues: embarrassing messages
+        if stomach and random.random() < 0.35:
+            msgs = [
+                "|m*GRRRRGLE* Your stomach makes a sound like a diesel engine misfiring.|n",
+                "|mYou break a cold sweat. That chili dog is staging a revolt.|n",
+                "|mYour gut is doing things that violate the Geneva Convention.|n",
+                "|mYou clench the steering wheel for reasons unrelated to driving.|n",
+                "|mThe cab smells like a crime scene. You crack the window.|n",
+            ]
+            trucker.msg(random.choice(msgs))
+
+    def _force_stop(self, trucker):
+        """Force the trucker to pull over (DOT hours violation)."""
+        trucker.msg("|rYou pull onto the shoulder and put it in park.|n")
+        trucker.msg("|rType |wsleep|r to rest at the roadside.|n")
+
+        # Clear driving state but don't move to a city
+        trucker.db.driving_to = None
+        trucker.db.driving_from = None
+        trucker.db.driving_miles_left = 0
+        trucker.db.driving_highway = ""
+        self.stop()
 
     def _random_event(self, trucker):
         """Trigger a random highway event."""

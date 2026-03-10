@@ -47,18 +47,18 @@ def node_handle(caller, raw_string, **kwargs):
 def node_city(caller, raw_string, **kwargs):
     """Pick your starting city."""
 
-    # Show tier 3 cities as starting options (major metros)
-    start_cities = {k: v for k, v in CITIES.items() if v["tier"] >= 2}
+    # Show tier 3 cities as starting options (major metros only — fits on one screen)
+    start_cities = {k: v for k, v in CITIES.items() if v["tier"] >= 3}
     sorted_cities = sorted(start_cities.items(), key=lambda x: x[1]["name"])
 
     lines = [
-        f"|wAlright {caller.db.handle}, where are you starting from?|n\n",
-        "|wPick your home base:|n\n",
+        f"|wPick your home base, {caller.db.handle}:|n",
+        "",
     ]
     for i, (key, data) in enumerate(sorted_cities, 1):
-        lines.append(f"  |y{i:2}|n. |w{data['name']}, {data['state']}|n — {data['desc'][:60]}")
+        lines.append(f"  |y{i:2}|n. |w{data['name']}, {data['state']}|n")
 
-    lines.append(f"\n|y(Enter a number 1-{len(sorted_cities)})|n")
+    lines.append(f"\n|y(Enter 1-{len(sorted_cities)})|n")
     text = "\n".join(lines)
 
     def _set_city(caller, raw_string, **kwargs):

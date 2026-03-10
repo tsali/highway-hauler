@@ -21,7 +21,13 @@ CITIES = {
     "miami": {"name": "Miami", "state": "FL", "region": "southeast", "tier": 3, "desc": "End of the line — or the beginning. Citrus and cruise ship supplies."},
     "jacksonville": {"name": "Jacksonville", "state": "FL", "region": "southeast", "tier": 2, "desc": "Major port city on the St. Johns River."},
     "charlotte": {"name": "Charlotte", "state": "NC", "region": "southeast", "tier": 2, "desc": "Banking capital of the South. I-85 corridor hub."},
+    "louisville": {"name": "Louisville", "state": "KY", "region": "southeast", "tier": 3, "desc": "UPS Worldport at SDF. The air freight capital of America."},
     "nashville": {"name": "Nashville", "state": "TN", "region": "southeast", "tier": 2, "desc": "Music City. Freight terminal by day, honky-tonks by night."},
+    "birmingham": {"name": "Birmingham", "state": "AL", "region": "southeast", "tier": 2, "desc": "Steel City of the South. I-65 and I-20 crossroads."},
+    "montgomery": {"name": "Montgomery", "state": "AL", "region": "southeast", "tier": 1, "desc": "Capital of Alabama. Civil rights history and I-65 corridor."},
+    "mobile": {"name": "Mobile", "state": "AL", "region": "southeast", "tier": 2, "desc": "Gulf Coast port city. Where I-65 meets I-10."},
+    "pensacola": {"name": "Pensacola", "state": "FL", "region": "southeast", "tier": 2, "desc": "Port of Pensacola off I-110. Naval base, Gulf shipping, and boating goods."},
+    "tallahassee": {"name": "Tallahassee", "state": "FL", "region": "southeast", "tier": 1, "desc": "Florida's capital. I-10 corridor between the panhandle and Jacksonville."},
     "new_orleans": {"name": "New Orleans", "state": "LA", "region": "southeast", "tier": 2, "desc": "The Big Easy. Port of the Mississippi River."},
     "richmond": {"name": "Richmond", "state": "VA", "region": "southeast", "tier": 1, "desc": "Capital of Virginia. I-95 corridor rest stop."},
 
@@ -78,42 +84,55 @@ CITIES = {
 # Highway connections: (city_a, city_b, distance_miles, highway_name)
 # Real approximate interstate distances
 HIGHWAYS = [
-    # I-95 Corridor (East Coast)
+    # I-95 Corridor (East Coast: Boston to Miami)
     ("boston", "new_york", 215, "I-95"),
     ("new_york", "philadelphia", 97, "I-95"),
     ("philadelphia", "richmond", 290, "I-95"),
-    ("richmond", "charlotte", 330, "I-85"),
-    ("charlotte", "atlanta", 245, "I-85"),
-    ("atlanta", "jacksonville", 345, "I-75/I-10"),
+    ("richmond", "jacksonville", 560, "I-95"),
     ("jacksonville", "miami", 345, "I-95"),
 
-    # I-90 Corridor (Northern)
+    # I-85 Corridor (Richmond to Atlanta via Piedmont)
+    ("richmond", "charlotte", 330, "I-85"),
+    ("charlotte", "atlanta", 245, "I-85"),
+
+    # I-90 Corridor (Northern: Boston to Seattle)
     ("boston", "buffalo", 450, "I-90"),
     ("buffalo", "cleveland", 190, "I-90"),
     ("cleveland", "chicago", 345, "I-90"),
-    ("chicago", "milwaukee", 92, "I-94"),
-    ("milwaukee", "minneapolis", 335, "I-94"),
     ("minneapolis", "sioux_falls", 230, "I-90"),
     ("sioux_falls", "billings", 620, "I-90"),
     ("billings", "spokane", 470, "I-90"),
     ("spokane", "seattle", 280, "I-90"),
 
-    # I-80 Corridor (Middle)
+    # I-94 Corridor (Detroit to Minneapolis)
+    ("detroit", "chicago", 280, "I-94"),
+    ("chicago", "milwaukee", 92, "I-94"),
+    ("milwaukee", "minneapolis", 335, "I-94"),
+
+    # I-80/I-76 Corridor (NYC to SF)
     ("new_york", "pittsburgh", 370, "I-80/I-76"),
+    ("cheyenne", "salt_lake_city", 440, "I-80"),
+    ("salt_lake_city", "sacramento", 585, "I-80"),
+    ("sacramento", "san_francisco", 87, "I-80"),
+    ("omaha", "des_moines", 140, "I-80"),
+    ("omaha", "denver", 530, "I-80"),
+
+    # I-84 Corridor (SLC to Portland)
+    ("salt_lake_city", "boise", 340, "I-84"),
+    ("boise", "portland", 430, "I-84"),
+
+    # I-70 Corridor (Pittsburgh to Denver)
     ("pittsburgh", "columbus", 185, "I-70"),
     ("columbus", "indianapolis", 175, "I-70"),
     ("indianapolis", "st_louis", 240, "I-70"),
     ("st_louis", "kansas_city", 250, "I-70"),
     ("kansas_city", "denver", 600, "I-70"),
-    ("denver", "cheyenne", 100, "I-25"),
-    ("cheyenne", "salt_lake_city", 440, "I-80"),
-    ("salt_lake_city", "boise", 340, "I-84"),
-    ("boise", "portland", 430, "I-84"),
-    ("salt_lake_city", "sacramento", 650, "I-80"),
-    ("sacramento", "san_francisco", 87, "I-80"),
 
-    # I-10 Corridor (Southern)
-    ("jacksonville", "new_orleans", 545, "I-10"),
+    # I-10 Corridor (Jacksonville to LA — full east-west southern route)
+    ("jacksonville", "tallahassee", 165, "I-10"),
+    ("tallahassee", "pensacola", 195, "I-10"),
+    ("pensacola", "mobile", 60, "I-10"),
+    ("mobile", "new_orleans", 150, "I-10"),
     ("new_orleans", "houston", 350, "I-10"),
     ("houston", "san_antonio", 200, "I-10"),
     ("san_antonio", "el_paso", 550, "I-10"),
@@ -121,17 +140,34 @@ HIGHWAYS = [
     ("tucson", "phoenix", 115, "I-10"),
     ("phoenix", "los_angeles", 370, "I-10"),
 
-    # I-75 Corridor
+    # I-75 Corridor (Detroit to Jacksonville)
     ("detroit", "cincinnati", 265, "I-75"),
     ("cincinnati", "atlanta", 460, "I-75"),
     ("atlanta", "jacksonville", 345, "I-75"),
 
-    # I-65 Corridor
+    # I-65 Corridor (Chicago to Mobile)
     ("chicago", "indianapolis", 185, "I-65"),
-    ("indianapolis", "nashville", 285, "I-65"),
-    ("nashville", "atlanta", 250, "I-75/I-24"),
+    ("indianapolis", "louisville", 115, "I-65"),
+    ("louisville", "nashville", 175, "I-65"),
+    ("nashville", "birmingham", 190, "I-65"),
+    ("birmingham", "montgomery", 90, "I-65"),
+    ("montgomery", "mobile", 170, "I-65"),
 
-    # I-35 Corridor
+    # I-71 Corridor (Cleveland to Louisville)
+    ("cleveland", "columbus", 145, "I-71"),
+    ("columbus", "cincinnati", 110, "I-71"),
+    ("cincinnati", "louisville", 100, "I-71"),
+
+    # I-64 Corridor (Richmond to St. Louis via Louisville)
+    ("richmond", "louisville", 590, "I-64"),
+    ("louisville", "st_louis", 265, "I-64"),
+
+    # I-55 Corridor (Chicago to New Orleans)
+    ("chicago", "st_louis", 300, "I-55"),
+    ("st_louis", "memphis", 285, "I-55"),
+    ("memphis", "new_orleans", 390, "I-55"),
+
+    # I-35 Corridor (Minneapolis to San Antonio)
     ("minneapolis", "des_moines", 245, "I-35"),
     ("des_moines", "kansas_city", 195, "I-35"),
     ("kansas_city", "wichita", 200, "I-35"),
@@ -139,45 +175,41 @@ HIGHWAYS = [
     ("oklahoma_city", "dallas", 205, "I-35"),
     ("dallas", "san_antonio", 275, "I-35"),
 
-    # I-40 Corridor
+    # I-40 Corridor (Memphis to Albuquerque, then I-17 south to Phoenix)
     ("memphis", "little_rock", 135, "I-40"),
     ("little_rock", "oklahoma_city", 340, "I-40"),
     ("oklahoma_city", "albuquerque", 540, "I-40"),
-    ("albuquerque", "phoenix", 450, "I-17/I-40"),
+    ("albuquerque", "phoenix", 450, "I-40/I-17"),
+    ("memphis", "nashville", 210, "I-40"),
 
-    # I-25 Corridor
-    ("albuquerque", "el_paso", 265, "I-25"),
+    # I-25 Corridor (El Paso to Denver)
+    ("el_paso", "albuquerque", 265, "I-25"),
     ("albuquerque", "denver", 450, "I-25"),
+    ("denver", "cheyenne", 100, "I-25"),
 
-    # I-15 Corridor
-    ("san_diego", "los_angeles", 120, "I-15/I-5"),
+    # I-20 (Atlanta to Dallas via Birmingham)
+    ("atlanta", "birmingham", 150, "I-20"),
+    ("birmingham", "dallas", 630, "I-20"),
+
+    # I-24 (Nashville to Atlanta)
+    ("nashville", "atlanta", 250, "I-24"),
+
+    # I-15 Corridor (San Diego to Montana via Vegas/SLC)
+    ("san_diego", "los_angeles", 120, "I-5/I-15"),
     ("los_angeles", "las_vegas", 270, "I-15"),
     ("las_vegas", "salt_lake_city", 420, "I-15"),
-    ("salt_lake_city", "billings", 540, "I-15"),
 
-    # I-5 Corridor (West Coast)
-    ("san_diego", "los_angeles", 120, "I-5"),
+    # I-5 Corridor (West Coast: San Diego to Seattle)
     ("los_angeles", "sacramento", 385, "I-5"),
     ("sacramento", "portland", 580, "I-5"),
     ("portland", "seattle", 175, "I-5"),
 
     # Cross links
-    ("detroit", "chicago", 280, "I-94"),
     ("cleveland", "pittsburgh", 130, "I-76"),
-    ("cleveland", "columbus", 145, "I-71"),
-    ("cincinnati", "columbus", 110, "I-71"),
-    ("memphis", "nashville", 210, "I-40"),
-    ("memphis", "new_orleans", 390, "I-55"),
-    ("st_louis", "memphis", 285, "I-55"),
-    ("chicago", "st_louis", 300, "I-55"),
-    ("dallas", "houston", 240, "I-45"),
-    ("omaha", "des_moines", 140, "I-80"),
-    ("omaha", "kansas_city", 185, "I-29"),
-    ("omaha", "denver", 540, "I-76/I-80"),
     ("buffalo", "pittsburgh", 220, "I-79"),
-    ("richmond", "jacksonville", 580, "I-95"),
+    ("dallas", "houston", 240, "I-45"),
+    ("omaha", "kansas_city", 185, "I-29"),
     ("phoenix", "las_vegas", 300, "US-93"),
-    ("denver", "albuquerque", 450, "I-25"),
 ]
 
 # Cargo types with base values and weight
@@ -195,6 +227,27 @@ CARGO_TYPES = {
     "beer": {"name": "Beer & Beverages", "base_pay_per_mile": 2.10, "weight": 20000, "desc": "Cases of beer and soft drinks. Heavy liquid cargo."},
     "steel": {"name": "Steel", "base_pay_per_mile": 1.60, "weight": 30000, "desc": "Steel coils and beams. Maximum weight, minimum excitement."},
 }
+
+# Rest areas / truck stops along major highways
+# These are NOT cities — they're intermediate stops for eating, sleeping, restrooms
+REST_AREAS = [
+    {"name": "Pilot Travel Center", "highway": "I-65", "between": ("louisville", "nashville"), "mile": 80},
+    {"name": "Love's Travel Stop", "highway": "I-10", "between": ("pensacola", "mobile"), "mile": 30},
+    {"name": "Flying J Truck Stop", "highway": "I-40", "between": ("little_rock", "oklahoma_city"), "mile": 170},
+    {"name": "TA Travel Center", "highway": "I-95", "between": ("richmond", "jacksonville"), "mile": 280},
+    {"name": "Petro Stopping Center", "highway": "I-80", "between": ("omaha", "denver"), "mile": 265},
+    {"name": "Pilot Flying J", "highway": "I-70", "between": ("st_louis", "kansas_city"), "mile": 125},
+    {"name": "Love's Country Store", "highway": "I-35", "between": ("oklahoma_city", "dallas"), "mile": 100},
+    {"name": "TA Express", "highway": "I-75", "between": ("cincinnati", "atlanta"), "mile": 230},
+    {"name": "Flying J Plaza", "highway": "I-90", "between": ("sioux_falls", "billings"), "mile": 310},
+    {"name": "Petro Iron Skillet", "highway": "I-10", "between": ("houston", "san_antonio"), "mile": 100},
+    {"name": "Pilot Truck Stop", "highway": "I-55", "between": ("st_louis", "memphis"), "mile": 140},
+    {"name": "Love's Travel Stop", "highway": "I-5", "between": ("sacramento", "portland"), "mile": 290},
+    {"name": "TA Truck Stop", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 315},
+    {"name": "Sapp Bros.", "highway": "I-80", "between": ("cheyenne", "salt_lake_city"), "mile": 220},
+    {"name": "Buc-ee's", "highway": "I-10", "between": ("new_orleans", "houston"), "mile": 175},
+]
+
 
 # Geography trivia questions
 TRIVIA = [

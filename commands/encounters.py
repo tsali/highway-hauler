@@ -81,7 +81,7 @@ class CmdLotLizardResponse(Command):
     """
 
     key = "sure"
-    aliases = ["nah", "no", "yes", "decline", "accept"]
+    aliases = ["nah", "no thanks", "yes please", "decline"]
     locks = "cmd:all()"
 
     def func(self):

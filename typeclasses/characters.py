@@ -5,6 +5,7 @@ Players are truckers with a rig, cargo capacity, fuel tank, and money.
 Attributes stored via Evennia's db system.
 """
 
+import random
 from evennia.objects.objects import DefaultCharacter
 from .objects import ObjectParent
 
@@ -101,6 +102,16 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.weigh_violations = 0
         self.db.last_lot_lizard = 0
         self.db.contract_bonus = 1.0
+        # Trucker needs
+        self.db.hunger = 0        # 0=full, 100=starving
+        self.db.bladder = 0       # 0=empty, 100=desperate
+        self.db.fatigue = 0       # 0=rested, 100=exhausted
+        self.db.hours_driving = 0.0  # continuous driving hours
+        self.db.lactose_intolerant = (random.random() < 0.20)
+        self.db.has_tums = False
+        self.db.tums_count = 0
+        self.db.stomach_issues = False
+        self.db.mandatory_rest = False  # DOT mandatory rest flag
 
     @property
     def speed(self):
@@ -165,6 +176,22 @@ class Trucker(ObjectParent, DefaultCharacter):
             f"|wCB Radio:|n {cb['name']}",
         ]
 
+        # Trucker needs
+        hunger = self.db.hunger or 0
+        bladder = self.db.bladder or 0
+        fatigue = self.db.fatigue or 0
+        lines.append("")
+        lines.append(f"|w--- TRUCKER ---")
+        lines.append(f"|wHunger:|n  {self._needs_bar(hunger)} {hunger}/100")
+        lines.append(f"|wBladder:|n {self._needs_bar(bladder)} {bladder}/100")
+        lines.append(f"|wFatigue:|n {self._needs_bar(fatigue)} {fatigue}/100")
+        if self.db.hours_driving and self.db.hours_driving > 0:
+            lines.append(f"|wDriving hours:|n {self.db.hours_driving:.1f}/16")
+        if self.db.stomach_issues:
+            lines.append(f"|r  !! Stomach problems !!|n")
+        if self.db.mandatory_rest:
+            lines.append(f"|r  !! DOT: Mandatory rest required !!|n")
+
         if self.is_driving:
             lines.append("")
             lines.append(f"|y--- ON THE ROAD ---|n")
@@ -186,6 +213,19 @@ class Trucker(ObjectParent, DefaultCharacter):
         else:
             color = "|r"
         return f"[{color}{'#' * filled}|n{'.' * empty}]"
+
+    @staticmethod
+    def _needs_bar(value):
+        """Simple needs bar: 0=good (green), 100=bad (red)."""
+        filled = int(value / 5)
+        empty = 20 - filled
+        if value < 40:
+            color = "|g"
+        elif value < 70:
+            color = "|y"
+        else:
+            color = "|r"
+        return f"[{color}{'|' * filled}|n{'.' * empty}]"
 
     def at_post_puppet(self, **kwargs):
         """Called when a player connects to this character."""

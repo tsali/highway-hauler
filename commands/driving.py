@@ -30,6 +30,11 @@ class CmdDrive(Command):
             caller.msg("|rYou're already on the road! Type |wstop|r to pull over (not implemented yet).|n")
             return
 
+        if caller.db.mandatory_rest:
+            caller.msg("|rDOT regulations: You must sleep before driving again.|n")
+            caller.msg("|rType |wsleep|r to rest.|n")
+            return
+
         if not self.args:
             caller.msg("|wUsage: drive <city name>|n")
             return

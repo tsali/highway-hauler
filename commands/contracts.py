@@ -95,7 +95,7 @@ def generate_contracts(city_key, count=5):
             "deadline": deadline,
         })
 
-    return contracts[:8]  # Cap at 8
+    return contracts[:5]  # Cap at 5
 
 
 class CmdContracts(Command):
@@ -134,9 +134,7 @@ class CmdContracts(Command):
         caller.ndb.available_contracts = contracts
 
         lines = [
-            "|w" + "=" * 65 + "|n",
-            "|w  FREIGHT TERMINAL — Available Contracts|n",
-            "|w" + "=" * 65 + "|n",
+            "|wFREIGHT TERMINAL — Available Contracts|n",
             "",
         ]
 

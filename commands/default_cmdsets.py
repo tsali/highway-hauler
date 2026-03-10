@@ -13,6 +13,7 @@ from commands.trucker import (
     CmdStatus, CmdUpgrade, CmdCB, CmdWho, CmdScores, CmdTrivia, CmdTriviaAnswer,
 )
 from commands.encounters import CmdLotLizardResponse, CmdGangResponse
+from commands.needs import CmdEat, CmdDinerChoice, CmdRestroom, CmdSleep, CmdNoInput, CmdNoMatch
 
 
 class CharacterCmdSet(BaseCharacterCmdSet):
@@ -46,6 +47,16 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         # Encounters
         self.add(CmdLotLizardResponse())
         self.add(CmdGangResponse())
+
+        # Trucker needs
+        self.add(CmdEat())
+        self.add(CmdDinerChoice())
+        self.add(CmdRestroom())
+        self.add(CmdSleep())
+
+        # System commands
+        self.add(CmdNoInput())
+        self.add(CmdNoMatch())
 
 
 class AccountCmdSet(BaseAccountCmdSet):

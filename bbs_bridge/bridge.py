@@ -355,10 +355,17 @@ async def handle_connection(bbs_reader, bbs_writer, evennia_host, evennia_port):
             mud_writer.write(create_cmd.encode())
             await mud_writer.drain()
 
-            await read_until_pattern(mud_reader, "[Y]/N?", timeout=10.0)
-            mud_writer.write(b"Y\r\n")
-            await mud_writer.drain()
+            # Evennia may ask [Y]/N? or create immediately with "You can now log"
+            create_raw, create_match = await read_until_any(
+                mud_reader, ["[Y]/N?", "You can now log"], timeout=10.0,
+            )
+            if create_match == "[Y]/N?":
+                mud_writer.write(b"Y\r\n")
+                await mud_writer.drain()
+                # After Y, wait for creation to complete
+                await read_until_pattern(mud_reader, "You can now log", timeout=10.0)
 
+            # Now connect with the newly created account
             mud_writer.write(connect_cmd.encode())
             await mud_writer.drain()
 
