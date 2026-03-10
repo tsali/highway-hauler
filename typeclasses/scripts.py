@@ -76,14 +76,26 @@ class DrivingScript(DefaultScript):
             needs_mod -= 0.05
         if (trucker.db.bladder or 0) >= 80:
             needs_mod -= 0.05
-        if (trucker.db.fatigue or 0) >= 80:
+        fatigue = trucker.db.fatigue or 0
+        if fatigue >= 80:
             needs_mod -= 0.10
             # Microsleep swerve chance
             if random.random() < 0.15:
                 trucker.msg("|r*** Your eyes close for a second — you jerk the wheel! ***|n")
                 trucker.msg("|rYou swerve across the rumble strips. That was close!|n")
-                # Small delay penalty
                 trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(2, 5)
+
+            # Missed exit chance (fatigue 80+, 8% per tick)
+            if random.random() < 0.08:
+                extra = random.randint(10, 25)
+                trucker.msg("|r*** You missed your exit! ***|n")
+                trucker.msg(f"|rYou were zoning out and blew right past the turn. {extra} extra miles to the next one.|n")
+                trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + extra
+
+            # Crash risk (fatigue 90+, 5% per tick — serious consequences)
+            if fatigue >= 90 and random.random() < 0.05:
+                self._fatigue_crash(trucker)
+
         miles_this_tick *= max(0.5, needs_mod)
 
         # Consume fuel
@@ -213,8 +225,68 @@ class DrivingScript(DefaultScript):
         trucker.db.driving_highway = ""
         self.stop()
 
+    def _fatigue_crash(self, trucker):
+        """Trucker falls asleep at the wheel — serious consequences."""
+        crash_type = random.choices(
+            ["ditch", "guardrail", "jackknife"],
+            weights=[40, 35, 25],
+            k=1,
+        )[0]
+
+        if crash_type == "ditch":
+            repair = random.randint(300, 800)
+            trucker.msg("|r*** YOU FELL ASLEEP AT THE WHEEL! ***|n")
+            trucker.msg("|rYour truck drifts off the road and into a drainage ditch.|n")
+            trucker.msg(f"|rTow and repair: |w${repair}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - repair)
+            trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(15, 30)
+            trucker.msg("|rYou're shaken but back on the road after a long delay.|n")
+
+        elif crash_type == "guardrail":
+            repair = random.randint(500, 1200)
+            trucker.msg("|r*** YOU FELL ASLEEP AT THE WHEEL! ***|n")
+            trucker.msg("|rYou slam into the guardrail doing 60. Metal screams.|n")
+            trucker.msg(f"|rRepair bill: |w${repair}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - repair)
+            # Damage a random cargo
+            cargo = trucker.db.current_cargo or []
+            if cargo:
+                damaged = random.choice(cargo)
+                damage_pct = random.randint(20, 50)
+                old_pay = damaged.get("pay", 0)
+                damaged["pay"] = int(old_pay * (1 - damage_pct / 100.0))
+                trucker.db.current_cargo = cargo
+                trucker.msg(f"|rYour |w{damaged.get('cargo_name', 'cargo')}|r was damaged! Payout reduced {damage_pct}%.|n")
+            trucker.db.driving_miles_left = (trucker.db.driving_miles_left or 0) + random.randint(20, 40)
+
+        elif crash_type == "jackknife":
+            repair = random.randint(800, 2000)
+            trucker.msg("|r*** YOU FELL ASLEEP AND JACKKNIFED! ***|n")
+            trucker.msg("|rYour trailer swings out and you skid across three lanes.|n")
+            trucker.msg(f"|rMassive repair bill: |w${repair}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - repair)
+            # Lose a random cargo entirely
+            cargo = trucker.db.current_cargo or []
+            if cargo:
+                lost = random.choice(cargo)
+                cargo.remove(lost)
+                trucker.db.current_cargo = cargo
+                trucker.msg(f"|rYour |w{lost.get('cargo_name', 'cargo')}|r spilled across the highway. Contract lost.|n")
+            trucker.db.reputation = max(0, (trucker.db.reputation or 50) - 5)
+            trucker.msg("|rReputation -5. That made the evening news.|n")
+            # Force stop — too damaged to continue
+            trucker.msg("|rYour rig needs roadside service. You're stuck here until repairs finish.|n")
+            self._force_stop(trucker)
+
     def _random_event(self, trucker):
         """Trigger a random highway event."""
+        hours = trucker.db.hours_driving or 0
+
+        # DOT inspection — higher chance if over 12 hours
+        if hours >= 12 and random.random() < 0.15:
+            self._dot_inspection(trucker)
+            return
+
         event = random.choices(
             ["weather_change", "weigh_station", "flat_tire", "speed_trap", "nothing"],
             weights=[20, 15, 10, 10, 45],
@@ -257,6 +329,47 @@ class DrivingScript(DefaultScript):
                 trucker.msg(f"|r*** SPEED TRAP! ***|n")
                 trucker.msg(f"|rClocked at {trucker.speed} in a 65 zone. Fine: ${fine}|n")
                 trucker.db.money = max(0, (trucker.db.money or 0) - fine)
+
+    def _dot_inspection(self, trucker):
+        """DOT officer pulls you over to check your logbook and hours."""
+        hours = trucker.db.hours_driving or 0
+        trucker.msg("|y*** DOT INSPECTION ***|n")
+        trucker.msg("|yA DOT officer waves you over to the shoulder.|n")
+        trucker.msg(f"|y\"Let me see your logbook, driver.\"|n")
+
+        violations = []
+
+        # Hours of service violation
+        if hours >= 14:
+            fine = random.randint(1000, 2500)
+            trucker.msg(f"|r\"You've been driving {hours:.0f} hours?! That's a federal violation.\"|n")
+            trucker.msg(f"|rHOS violation fine: |w${fine}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - fine)
+            trucker.db.reputation = max(0, (trucker.db.reputation or 50) - 5)
+            violations.append("HOS")
+        elif hours >= 12:
+            fine = random.randint(300, 800)
+            trucker.msg(f"|y\"You're pushing it at {hours:.0f} hours. I'm writing you up.\"|n")
+            trucker.msg(f"|rLogbook warning fine: |w${fine}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - fine)
+            violations.append("logbook")
+
+        # Check for weigh violations on record
+        if (trucker.db.weigh_violations or 0) >= 2:
+            extra_fine = random.randint(200, 500)
+            trucker.msg(f"|r\"I see you have prior weigh station violations too.\"|n")
+            trucker.msg(f"|rAdditional fine: |w${extra_fine}|n")
+            trucker.db.money = max(0, (trucker.db.money or 0) - extra_fine)
+
+        if not violations:
+            trucker.msg("|g\"Everything checks out. Drive safe out there.\"|n")
+        else:
+            trucker.msg(f"|rMoney remaining: |w${trucker.db.money:,}|n")
+            # Severe violation = forced rest
+            if hours >= 14:
+                trucker.msg("|r\"I'm shutting you down right here. You're not driving another mile.\"|n")
+                trucker.db.mandatory_rest = True
+                self._force_stop(trucker)
 
     def _arrive(self, trucker):
         """Handle arrival at destination city."""
