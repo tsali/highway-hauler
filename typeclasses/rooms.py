@@ -76,7 +76,7 @@ class CityRoom(Room):
         tier = data.get("tier", 1)
 
         tier_label = {1: "Small Town", 2: "Mid-Size City", 3: "Major Metro"}
-        services = ["|gFreight Terminal|n", "|yGas Station|n", "|cTruck Stop|n"]
+        services = ["|gFreight Terminal|n", "|yGas Station|n", "|cTruck Stop|n", "|wMessage Board|n"]
         if tier >= 2:
             services.append("|mUpgrade Shop|n")
         if tier >= 3:
@@ -148,7 +148,7 @@ class CityRoom(Room):
 
             # Commands hint
             lines.append("")
-            lines.append("|wCommands:|n |yeat|n |yrestroom|n |ysleep|n |yrefuel|n |yupgrade|n |ystatus|n |ycargo|n |ycb|n")
+            lines.append("|wCommands:|n |yeat|n |yrestroom|n |ysleep|n |yrefuel|n |yupgrade|n |ystatus|n |ycargo|n |ycb|n |yboard|n")
         return "\n".join(lines)
 
 

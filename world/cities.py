@@ -232,6 +232,7 @@ CARGO_TYPES = {
 # Rest areas / truck stops along major highways
 # These are NOT cities — they're intermediate stops for eating, sleeping, restrooms
 REST_AREAS = [
+    # === ORIGINAL 15 ===
     {"name": "Captain Travel Center", "highway": "I-65", "between": ("louisville", "nashville"), "mile": 80},
     {"name": "Heart's Travel Stop", "highway": "I-10", "between": ("pensacola", "mobile"), "mile": 30},
     {"name": "Soaring J Truck Stop", "highway": "I-40", "between": ("little_rock", "oklahoma_city"), "mile": 170},
@@ -247,6 +248,135 @@ REST_AREAS = [
     {"name": "Road America Truck Stop", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 315},
     {"name": "Trapp Bros.", "highway": "I-80", "between": ("cheyenne", "salt_lake_city"), "mile": 220},
     {"name": "Big Tex Fuel Depot", "highway": "I-10", "between": ("new_orleans", "houston"), "mile": 175},
+
+    # === I-95 ===
+    {"name": "Pilot Travel Center", "highway": "I-95", "between": ("boston", "new_york"), "mile": 110},
+    {"name": "Love's Travel Stop", "highway": "I-95", "between": ("philadelphia", "richmond"), "mile": 145},
+    {"name": "Buc-ee's Florence", "highway": "I-95", "between": ("richmond", "jacksonville"), "mile": 120},
+    {"name": "Petro Stopping Center", "highway": "I-95", "between": ("richmond", "jacksonville"), "mile": 430},
+    {"name": "Flying J Travel Plaza", "highway": "I-95", "between": ("jacksonville", "miami"), "mile": 120},
+    {"name": "Love's Truck Stop", "highway": "I-95", "between": ("jacksonville", "miami"), "mile": 240},
+
+    # === I-85 ===
+    {"name": "Pilot Flying J", "highway": "I-85", "between": ("richmond", "charlotte"), "mile": 110},
+    {"name": "TA TravelCenter", "highway": "I-85", "between": ("richmond", "charlotte"), "mile": 230},
+    {"name": "Love's Travel Stop", "highway": "I-85", "between": ("charlotte", "atlanta"), "mile": 120},
+
+    # === I-90 ===
+    {"name": "TA Syracuse", "highway": "I-90", "between": ("boston", "buffalo"), "mile": 150},
+    {"name": "Pilot Travel Center", "highway": "I-90", "between": ("boston", "buffalo"), "mile": 310},
+    {"name": "Flying J Erie", "highway": "I-90", "between": ("buffalo", "cleveland"), "mile": 95},
+    {"name": "Petro Stopping Center", "highway": "I-90", "between": ("cleveland", "chicago"), "mile": 120},
+    {"name": "Love's Truck Stop", "highway": "I-90", "between": ("cleveland", "chicago"), "mile": 245},
+    {"name": "Flying J Travel Plaza", "highway": "I-90", "between": ("minneapolis", "sioux_falls"), "mile": 115},
+    {"name": "Pilot Rapid City", "highway": "I-90", "between": ("sioux_falls", "billings"), "mile": 130},
+    {"name": "Love's Travel Stop", "highway": "I-90", "between": ("sioux_falls", "billings"), "mile": 490},
+    {"name": "Pilot Missoula", "highway": "I-90", "between": ("billings", "spokane"), "mile": 170},
+    {"name": "Flying J Travel Center", "highway": "I-90", "between": ("billings", "spokane"), "mile": 340},
+    {"name": "Love's Ellensburg", "highway": "I-90", "between": ("spokane", "seattle"), "mile": 150},
+
+    # === I-94 ===
+    {"name": "Pilot Kalamazoo", "highway": "I-94", "between": ("detroit", "chicago"), "mile": 140},
+    {"name": "TA Tomah", "highway": "I-94", "between": ("milwaukee", "minneapolis"), "mile": 110},
+    {"name": "Petro Eau Claire", "highway": "I-94", "between": ("milwaukee", "minneapolis"), "mile": 230},
+
+    # === I-80/I-76 ===
+    {"name": "Pilot Bloomsburg", "highway": "I-80/I-76", "between": ("new_york", "pittsburgh"), "mile": 130},
+    {"name": "Love's Clearfield", "highway": "I-80/I-76", "between": ("new_york", "pittsburgh"), "mile": 260},
+    {"name": "Pilot Evanston", "highway": "I-80", "between": ("cheyenne", "salt_lake_city"), "mile": 360},
+    {"name": "Pilot Wendover", "highway": "I-80", "between": ("salt_lake_city", "sacramento"), "mile": 120},
+    {"name": "Love's Elko", "highway": "I-80", "between": ("salt_lake_city", "sacramento"), "mile": 280},
+    {"name": "Petro Fernley", "highway": "I-80", "between": ("salt_lake_city", "sacramento"), "mile": 440},
+    {"name": "Buc-ee's North Platte", "highway": "I-80", "between": ("omaha", "cheyenne"), "mile": 120},
+
+    # === I-84 ===
+    {"name": "Pilot Twin Falls", "highway": "I-84", "between": ("salt_lake_city", "boise"), "mile": 120},
+    {"name": "Love's Jerome", "highway": "I-84", "between": ("salt_lake_city", "boise"), "mile": 220},
+    {"name": "Flying J Baker City", "highway": "I-84", "between": ("boise", "portland"), "mile": 140},
+    {"name": "Pilot Pendleton", "highway": "I-84", "between": ("boise", "portland"), "mile": 290},
+
+    # === I-70 ===
+    {"name": "Love's Cambridge", "highway": "I-70", "between": ("pittsburgh", "columbus"), "mile": 95},
+    {"name": "Petro Terre Haute", "highway": "I-70", "between": ("indianapolis", "st_louis"), "mile": 120},
+    {"name": "Buc-ee's Topeka", "highway": "I-70", "between": ("kansas_city", "denver"), "mile": 100},
+    {"name": "Pilot Hays", "highway": "I-70", "between": ("kansas_city", "denver"), "mile": 280},
+    {"name": "Love's Burlington", "highway": "I-70", "between": ("kansas_city", "denver"), "mile": 450},
+
+    # === I-10 ===
+    {"name": "Pilot Lake City", "highway": "I-10", "between": ("jacksonville", "tallahassee"), "mile": 80},
+    {"name": "Love's Marianna", "highway": "I-10", "between": ("tallahassee", "pensacola"), "mile": 100},
+    {"name": "Pilot Sonora", "highway": "I-10", "between": ("san_antonio", "el_paso"), "mile": 130},
+    {"name": "Love's Fort Stockton", "highway": "I-10", "between": ("san_antonio", "el_paso"), "mile": 280},
+    {"name": "Flying J Van Horn", "highway": "I-10", "between": ("san_antonio", "el_paso"), "mile": 420},
+    {"name": "Pilot Deming", "highway": "I-10", "between": ("el_paso", "tucson"), "mile": 100},
+    {"name": "Love's Willcox", "highway": "I-10", "between": ("el_paso", "tucson"), "mile": 220},
+    {"name": "Pilot Quartzsite", "highway": "I-10", "between": ("phoenix", "los_angeles"), "mile": 130},
+    {"name": "Love's Blythe", "highway": "I-10", "between": ("phoenix", "los_angeles"), "mile": 250},
+
+    # === I-75 ===
+    {"name": "Flying J Findlay", "highway": "I-75", "between": ("detroit", "cincinnati"), "mile": 130},
+    {"name": "Buc-ee's Chattanooga", "highway": "I-75", "between": ("cincinnati", "atlanta"), "mile": 370},
+    {"name": "Pilot Tifton", "highway": "I-75", "between": ("atlanta", "jacksonville"), "mile": 120},
+    {"name": "Love's Valdosta", "highway": "I-75", "between": ("atlanta", "jacksonville"), "mile": 240},
+
+    # === I-65 ===
+    {"name": "Pilot Lafayette", "highway": "I-65", "between": ("chicago", "indianapolis"), "mile": 95},
+    {"name": "Love's Pulaski", "highway": "I-65", "between": ("nashville", "birmingham"), "mile": 95},
+    {"name": "Petro Evergreen", "highway": "I-65", "between": ("montgomery", "mobile"), "mile": 85},
+
+    # === I-64 ===
+    {"name": "Love's Staunton", "highway": "I-64", "between": ("richmond", "louisville"), "mile": 130},
+    {"name": "Pilot Beckley", "highway": "I-64", "between": ("richmond", "louisville"), "mile": 290},
+    {"name": "TA Huntington", "highway": "I-64", "between": ("richmond", "louisville"), "mile": 440},
+    {"name": "Love's Paoli", "highway": "I-64", "between": ("louisville", "st_louis"), "mile": 130},
+
+    # === I-55 ===
+    {"name": "Pilot Pontiac", "highway": "I-55", "between": ("chicago", "st_louis"), "mile": 100},
+    {"name": "Love's Springfield", "highway": "I-55", "between": ("chicago", "st_louis"), "mile": 200},
+    {"name": "Pilot Grenada", "highway": "I-55", "between": ("memphis", "new_orleans"), "mile": 130},
+    {"name": "Love's McComb", "highway": "I-55", "between": ("memphis", "new_orleans"), "mile": 270},
+
+    # === I-35 ===
+    {"name": "Pilot Albert Lea", "highway": "I-35", "between": ("minneapolis", "des_moines"), "mile": 120},
+    {"name": "Love's Emporia", "highway": "I-35", "between": ("kansas_city", "wichita"), "mile": 100},
+    {"name": "Buc-ee's Temple", "highway": "I-35", "between": ("dallas", "san_antonio"), "mile": 140},
+
+    # === I-40 ===
+    {"name": "Love's Amarillo East", "highway": "I-40", "between": ("oklahoma_city", "albuquerque"), "mile": 130},
+    {"name": "Pilot Amarillo West", "highway": "I-40", "between": ("oklahoma_city", "albuquerque"), "mile": 270},
+    {"name": "TA Tucumcari", "highway": "I-40", "between": ("oklahoma_city", "albuquerque"), "mile": 400},
+    {"name": "Pilot Gallup", "highway": "I-40/I-17", "between": ("albuquerque", "phoenix"), "mile": 140},
+    {"name": "Love's Flagstaff", "highway": "I-40/I-17", "between": ("albuquerque", "phoenix"), "mile": 300},
+    {"name": "Pilot Jackson", "highway": "I-40", "between": ("memphis", "nashville"), "mile": 105},
+
+    # === I-25 ===
+    {"name": "Love's Truth or Consequences", "highway": "I-25", "between": ("el_paso", "albuquerque"), "mile": 130},
+    {"name": "Pilot Raton", "highway": "I-25", "between": ("albuquerque", "denver"), "mile": 190},
+    {"name": "Love's Trinidad", "highway": "I-25", "between": ("albuquerque", "denver"), "mile": 310},
+
+    # === I-20 ===
+    {"name": "Pilot Meridian", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 130},
+    {"name": "Love's Shreveport", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 490},
+
+    # === I-24/I-75 ===
+    {"name": "Pilot Chattanooga", "highway": "I-24/I-75", "between": ("nashville", "atlanta"), "mile": 130},
+
+    # === I-15 ===
+    {"name": "Pilot Barstow", "highway": "I-15", "between": ("los_angeles", "las_vegas"), "mile": 130},
+    {"name": "Love's Mesquite", "highway": "I-15", "between": ("las_vegas", "salt_lake_city"), "mile": 80},
+    {"name": "Flying J Cedar City", "highway": "I-15", "between": ("las_vegas", "salt_lake_city"), "mile": 240},
+
+    # === I-5 ===
+    {"name": "Love's Buttonwillow", "highway": "I-5", "between": ("los_angeles", "sacramento"), "mile": 130},
+    {"name": "Pilot Kettleman City", "highway": "I-5", "between": ("los_angeles", "sacramento"), "mile": 250},
+    {"name": "Pilot Redding", "highway": "I-5", "between": ("sacramento", "portland"), "mile": 120},
+    {"name": "Love's Grants Pass", "highway": "I-5", "between": ("sacramento", "portland"), "mile": 440},
+
+    # === Cross links ===
+    {"name": "Flying J Meadville", "highway": "I-79", "between": ("buffalo", "pittsburgh"), "mile": 110},
+    {"name": "Buc-ee's Madisonville", "highway": "I-45", "between": ("dallas", "houston"), "mile": 120},
+    {"name": "Love's Wickenburg", "highway": "US-93", "between": ("phoenix", "las_vegas"), "mile": 100},
+    {"name": "Pilot Kingman", "highway": "US-93", "between": ("phoenix", "las_vegas"), "mile": 200},
 ]
 
 

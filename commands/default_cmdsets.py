@@ -7,13 +7,14 @@ from evennia.commands.default.cmdset_account import AccountCmdSet as BaseAccount
 from evennia.commands.default.cmdset_session import SessionCmdSet as BaseSessionCmdSet
 from evennia.commands.default.cmdset_unloggedin import UnloggedinCmdSet as BaseUnloggedinCmdSet
 
-from commands.driving import CmdDrive, CmdRefuel, CmdStop, CmdMap
+from commands.driving import CmdDrive, CmdRefuel, CmdStop, CmdMap, CmdSpeed
 from commands.contracts import CmdContracts, CmdAccept, CmdCargo, CmdDeliver
 from commands.trucker import (
     CmdStatus, CmdUpgrade, CmdCB, CmdWho, CmdScores, CmdTrivia, CmdTriviaAnswer,
 )
 from commands.encounters import CmdLotLizardResponse, CmdGangResponse
 from commands.needs import CmdEat, CmdDinerChoice, CmdRestroom, CmdSleep, CmdNoInput, CmdNoMatch
+from commands.board import CmdBoard, CmdPost
 
 
 class CharacterCmdSet(BaseCharacterCmdSet):
@@ -29,6 +30,7 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         self.add(CmdRefuel())
         self.add(CmdStop())
         self.add(CmdMap())
+        self.add(CmdSpeed())
 
         # Contracts
         self.add(CmdContracts())
@@ -54,6 +56,10 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         self.add(CmdDinerChoice())
         self.add(CmdRestroom())
         self.add(CmdSleep())
+
+        # City message board
+        self.add(CmdBoard())
+        self.add(CmdPost())
 
         # System commands
         self.add(CmdNoInput())

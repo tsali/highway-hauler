@@ -33,7 +33,7 @@ class CmdUpgrade(Command):
         upgrade          - List available upgrades
         upgrade <type>   - Buy the next level of an upgrade
 
-    Types: engine, tank, trailer, cb, gps
+    Types: engine, tank, trailer, cb, gps, radar
     Must be at a mid-size city or larger.
     """
 
@@ -67,7 +67,7 @@ class CmdUpgrade(Command):
             upgrade_type = "cb_radio"
 
         if upgrade_type not in TRUCK_UPGRADES:
-            caller.msg(f"|rUnknown upgrade type. Options: engine, tank, trailer, cb, gps|n")
+            caller.msg(f"|rUnknown upgrade type. Options: engine, tank, trailer, cb, gps, radar|n")
             return
 
         self._buy_upgrade(caller, upgrade_type)
@@ -75,24 +75,24 @@ class CmdUpgrade(Command):
     def _show_upgrades(self, caller):
         lines = [
             "|w=== UPGRADE SHOP ===|n",
-            "",
         ]
 
         for utype, udata in TRUCK_UPGRADES.items():
             level_attr = f"{utype.replace('cb_radio', 'cb')}_level"
             current = getattr(caller.db, level_attr, 0) or 0
             levels = udata["levels"]
+            cur_name = levels[current]["name"]
+            cmd = utype.replace("cb_radio", "cb")
 
-            lines.append(f"|w{udata['name']}:|n")
-            for i, lv in enumerate(levels):
-                marker = " |g<< CURRENT|n" if i == current else ""
-                if i == current + 1:
-                    marker = f" |y<< NEXT (${lv['cost']:,})|n"
-                lines.append(f"  {i}. {lv['name']}{marker}")
-            lines.append("")
+            if current >= len(levels) - 1:
+                lines.append(f"  |w{udata['name']:12s}|n {cur_name} |g(MAX)|n")
+            else:
+                nxt = levels[current + 1]
+                lines.append(
+                    f"  |w{udata['name']:12s}|n {cur_name} -> |y{nxt['name']}|n |y${nxt['cost']:,}|n  |yupgrade {cmd}|n"
+                )
 
-        lines.append("|wType |yupgrade <type>|w to buy the next level.|n")
-        lines.append(f"|wYour money:|n |g${caller.db.money:,}|n")
+        lines.append(f"|wMoney:|n |g${caller.db.money:,}|n")
         caller.msg("\n".join(lines))
 
     def _buy_upgrade(self, caller, utype):
@@ -356,6 +356,7 @@ class CmdTriviaAnswer(Command):
 
     key = "_trivia_answer"
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         caller = self.caller

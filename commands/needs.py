@@ -153,6 +153,7 @@ class CmdDinerChoice(Command):
     key = "1"
     aliases = ["2", "3", "4", "5", "6", "7", "8"]
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         caller = self.caller
@@ -290,8 +291,29 @@ class CmdRestroom(Command):
         bladder = caller.db.bladder or 0
         stomach = caller.db.stomach_issues or False
 
-        if bladder < 10 and not stomach:
+        if bladder < 10 and not stomach and not caller.db.soiled:
             caller.msg("|wYou don't really need to go right now.|n")
+            return
+
+        # Handle soiled cleanup
+        if caller.db.soiled:
+            cleaning_fee = 75
+            caller.msg("|wYou rush to the restroom and... take care of things.|n")
+            caller.msg("|w...|n")
+            caller.msg("|wA long, long shower later, you emerge.|n")
+            if (caller.db.money or 0) >= cleaning_fee:
+                caller.db.money = (caller.db.money or 0) - cleaning_fee
+                caller.msg(f"|yThe truck stop attendant charges you |w${cleaning_fee}|y to clean the cab.|n")
+                caller.msg(f"|y\"We've seen worse,\" they say. You doubt that.|n")
+            else:
+                caller.msg("|yThe attendant hoses out your cab for free. Out of pity.|n")
+                caller.db.reputation = max(0, (caller.db.reputation or 50) - 2)
+                caller.msg("|rReputation -2. That story's going to follow you.|n")
+            caller.db.soiled = False
+            caller.db.bladder = 0
+            caller.db.stomach_issues = False
+            caller.msg("|gSoiled status cleared. You're a new man.|n")
+            caller.msg(f"|wMoney:|n |g${caller.db.money:,}|n")
             return
 
         # Determine scenario
@@ -357,7 +379,7 @@ class CmdSleep(Command):
     """
 
     key = "sleep"
-    aliases = ["rest", "nap", "sleeper"]
+    aliases = ["rest", "nap", "sleeper", "bunks", "bunk"]
     locks = "cmd:all()"
 
     def func(self):
@@ -425,6 +447,7 @@ class CmdNoInput(Command):
 
     key = syscmdkeys.CMD_NOINPUT
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         self.caller.execute_cmd("look")
@@ -435,6 +458,7 @@ class CmdNoMatch(Command):
 
     key = syscmdkeys.CMD_NOMATCH
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         raw = self.raw_string.strip()

@@ -30,11 +30,17 @@ from evennia.objects.models import ObjectDB
 def get_scores():
     """Read all trucker characters and return scores dict."""
     truckers = []
+    live_positions = []
+
     for obj in ObjectDB.objects.filter(db_typeclass_path__contains="characters.Trucker"):
         if not obj.db.chargen_complete:
             continue
+
+        handle = obj.db.handle or obj.key
+        online = bool(obj.sessions.count())
+
         truckers.append({
-            "handle": obj.db.handle or obj.key,
+            "handle": handle,
             "miles": obj.db.miles_driven or 0,
             "deliveries": obj.db.deliveries_completed or 0,
             "ontime": obj.db.deliveries_ontime or 0,
@@ -43,6 +49,36 @@ def get_scores():
             "biggest_haul_weight": obj.db.biggest_haul_weight or 0,
             "biggest_haul_income": obj.db.biggest_haul_income or 0,
         })
+
+        # Build live position data
+        pos = {"handle": handle, "online": online}
+        driving_to = obj.db.driving_to
+        driving_from = obj.db.driving_from
+        if driving_to and driving_from:
+            miles_left = obj.db.driving_miles_left or 0
+            miles_total = obj.db.driving_miles_total or miles_left
+            progress = max(0, min(1.0, 1.0 - (miles_left / miles_total))) if miles_total > 0 else 0
+            pos["status"] = "driving"
+            pos["from"] = driving_from
+            pos["to"] = driving_to
+            pos["highway"] = obj.db.driving_highway or ""
+            pos["progress"] = round(progress, 2)
+            pos["weather"] = obj.db.current_weather or "clear"
+        else:
+            # At a city or rest stop
+            city_key = ""
+            if obj.location and hasattr(obj.location, 'db'):
+                city_key = obj.location.db.city_key or ""
+            # If at a rest stop, try to figure out which cities it's between
+            if not city_key and obj.location and hasattr(obj.location, 'db'):
+                # Rest stop rooms store from_city/to_city
+                city_key = obj.location.db.from_city or obj.location.db.to_city or ""
+            # Check driving_from (last city they departed from, set even after arrival)
+            if not city_key:
+                city_key = obj.db.last_city or obj.db.home_city or ""
+            pos["status"] = "stopped"
+            pos["city"] = city_key
+        live_positions.append(pos)
 
     truckers.sort(key=lambda x: x["miles"], reverse=True)
 
@@ -68,6 +104,7 @@ def get_scores():
     return {
         "truckers": truckers[:20],
         "records": records,
+        "positions": live_positions,
     }
 
 

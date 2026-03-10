@@ -508,6 +508,10 @@ class CmdStop(Command):
         caller.move_to(rest_room, quiet=True)
         caller.execute_cmd("look")
 
+        # Lot lizard encounter chance at rest stops
+        from commands.encounters import trigger_lot_lizard
+        trigger_lot_lizard(caller)
+
 
 class CmdMap(Command):
     """
@@ -823,3 +827,62 @@ class CmdMap(Command):
             return CITIES.get(caller.db.home_city, {}).get("region", "")
 
         return ""
+
+
+class CmdSpeed(Command):
+    """
+    Set your driving speed.
+
+    Usage:
+        speed           - Show current speed
+        speed <mph>     - Set speed (10 to your max)
+        speed max       - Reset to max engine speed
+
+    Slower speeds save fuel and avoid speeding tickets.
+    The posted speed limit is 65 mph on most interstates.
+    """
+
+    key = "speed"
+    aliases = ["throttle"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+
+        if not self.args:
+            top = caller.max_speed
+            current = caller.speed
+            if current < top:
+                caller.msg(f"|wSpeed set to |y{current} mph|w (max {top} mph). Limit: 65 mph.|n")
+            else:
+                caller.msg(f"|wSpeed at max: |y{top} mph|w. Limit: 65 mph.|n")
+            caller.msg("|wType |yspeed <mph>|w to change. |yspeed max|w for full throttle.|n")
+            return
+
+        arg = self.args.strip().lower()
+        top = caller.max_speed
+
+        if arg == "max":
+            caller.db.set_speed = 0
+            caller.msg(f"|gSpeed set to max: |y{top} mph|n")
+            return
+
+        try:
+            mph = int(arg)
+        except ValueError:
+            caller.msg("|rEnter a number or 'max'.|n")
+            return
+
+        if mph < 10:
+            caller.msg("|rMinimum speed is 10 mph.|n")
+            return
+        if mph >= top:
+            caller.db.set_speed = 0
+            caller.msg(f"|gSpeed set to max: |y{top} mph|n")
+            return
+
+        caller.db.set_speed = mph
+        if mph <= 65:
+            caller.msg(f"|gSpeed set to |y{mph} mph|g. Under the limit — no tickets!|n")
+        else:
+            caller.msg(f"|ySpeed set to |y{mph} mph|y. Over the 65 mph limit — watch for cops.|n")

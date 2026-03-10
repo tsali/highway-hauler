@@ -184,6 +184,11 @@ class CmdAccept(Command):
     def func(self):
         caller = self.caller
 
+        if caller.db.soiled:
+            caller.msg("|rThe dispatcher takes one look at you and backs away.|n")
+            caller.msg("|r\"Come back after you've... cleaned up.\" Find a restroom first.|n")
+            return
+
         if not self.args:
             caller.msg("|wUsage: accept <number>|n")
             return

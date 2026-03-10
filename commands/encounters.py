@@ -83,6 +83,7 @@ class CmdLotLizardResponse(Command):
     key = "sure"
     aliases = ["nah", "no thanks", "yes please", "decline"]
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         caller = self.caller
@@ -190,6 +191,7 @@ class CmdGangResponse(Command):
     key = "floor it"
     aliases = ["fight", "run", "flee"]
     locks = "cmd:all()"
+    auto_help = False
 
     def func(self):
         caller = self.caller

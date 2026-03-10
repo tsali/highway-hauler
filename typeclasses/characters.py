@@ -58,6 +58,16 @@ TRUCK_UPGRADES = {
             {"name": "Trucker's GPS Pro", "reliability": 0.95, "cost": 60000},
         ],
     },
+    "radar": {
+        "name": "Radar Detector",
+        "levels": [
+            {"name": "None", "detection": 0, "cost": 0},
+            {"name": "Cobra RAD 250", "detection": 0.40, "cost": 800},
+            {"name": "Uniden R3", "detection": 0.65, "cost": 3000},
+            {"name": "Valentine One Gen2", "detection": 0.80, "cost": 8000},
+            {"name": "Escort MAX 360c", "detection": 0.92, "cost": 15000},
+        ],
+    },
 }
 
 
@@ -105,6 +115,8 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.cb_level = 0
         self.db.gps_level = 0
         self.db.gps_route = []  # remaining cities for GPS auto-routing
+        self.db.radar_level = 0
+        self.db.set_speed = 0  # 0 = use max engine speed
         self.db.driving_to = None
         self.db.driving_from = None
         self.db.driving_miles_left = 0
@@ -126,6 +138,7 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.has_tums = False
         self.db.tums_count = 0
         self.db.stomach_issues = False
+        self.db.soiled = False
         self.db.mandatory_rest = False  # DOT mandatory rest flag
         # High score tracking
         self.db.biggest_haul_weight = 0    # heaviest single delivery (lbs)
@@ -133,9 +146,18 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.total_income = 0           # lifetime earnings
 
     @property
-    def speed(self):
-        """Current truck speed (mph) based on engine level."""
+    def max_speed(self):
+        """Max truck speed (mph) based on engine level."""
         return TRUCK_UPGRADES["engine"]["levels"][self.db.engine_level or 0]["speed"]
+
+    @property
+    def speed(self):
+        """Current truck speed (mph) — respects set_speed if set."""
+        top = self.max_speed
+        setting = self.db.set_speed or 0
+        if setting and 0 < setting < top:
+            return setting
+        return top
 
     @property
     def fuel_capacity(self):
@@ -164,6 +186,17 @@ class Trucker(ObjectParent, DefaultCharacter):
         return TRUCK_UPGRADES["gps"]["levels"][level]["reliability"]
 
     @property
+    def has_radar(self):
+        """Whether the trucker has a radar detector."""
+        return (self.db.radar_level or 0) > 0
+
+    @property
+    def radar_detection(self):
+        """Radar detector detection chance (0.0-1.0)."""
+        level = self.db.radar_level or 0
+        return TRUCK_UPGRADES["radar"]["levels"][level]["detection"]
+
+    @property
     def current_cargo_weight(self):
         """Total weight of current cargo."""
         return sum(c.get("weight", 0) for c in (self.db.current_cargo or []))
@@ -187,6 +220,7 @@ class Trucker(ObjectParent, DefaultCharacter):
         trailer = TRUCK_UPGRADES["trailer"]["levels"][self.db.trailer_level or 0]
         cb = TRUCK_UPGRADES["cb_radio"]["levels"][self.db.cb_level or 0]
         gps = TRUCK_UPGRADES["gps"]["levels"][self.db.gps_level or 0]
+        radar = TRUCK_UPGRADES["radar"]["levels"][self.db.radar_level or 0]
 
         fuel_pct = (self.db.fuel / self.fuel_capacity) * 100 if self.fuel_capacity else 0
         fuel_bar = self._bar(fuel_pct)
@@ -201,11 +235,12 @@ class Trucker(ObjectParent, DefaultCharacter):
             f"|wDeliveries:|n {self.db.deliveries_completed} ({self.db.deliveries_ontime} on-time)",
             "",
             f"|w--- TRUCK ---",
-            f"|wEngine:|n {eng['name']} ({self.speed} mph)",
+            f"|wEngine:|n {eng['name']} (max {self.max_speed} mph)" + (f" |y[set to {self.speed} mph]|n" if self.speed < self.max_speed else ""),
             f"|wFuel:|n {self.db.fuel:.0f}/{self.fuel_capacity} gal {fuel_bar}",
             f"|wTrailer:|n {trailer['name']} ({self.current_cargo_weight:,}/{self.cargo_capacity:,} lbs)",
             f"|wCB Radio:|n {cb['name']}",
             f"|wGPS:|n {gps['name']}" + (f" ({gps['reliability']*100:.0f}% reliable)" if gps['reliability'] > 0 else ""),
+            f"|wRadar:|n {radar['name']}" + (f" ({radar['detection']*100:.0f}% detect)" if radar['detection'] > 0 else ""),
         ]
 
         # Trucker needs
@@ -219,6 +254,8 @@ class Trucker(ObjectParent, DefaultCharacter):
         lines.append(f"|wFatigue:|n {self._needs_bar(fatigue)} {fatigue}/100")
         if self.db.hours_driving and self.db.hours_driving > 0:
             lines.append(f"|wDriving hours:|n {self.db.hours_driving:.1f}/16")
+        if self.db.soiled:
+            lines.append(f"|r  !! SOILED — Find a restroom! Speed -15%, no contracts !!|n")
         if self.db.stomach_issues:
             lines.append(f"|r  !! Stomach problems !!|n")
         if self.db.mandatory_rest:
