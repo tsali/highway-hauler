@@ -91,6 +91,48 @@ Players start as rookie truckers with a beat-up rig and $500. Pick up cargo cont
 | `scores` | Leaderboard |
 | `trivia` | Geography trivia for bonus cash (at cities) |
 
+## Roadmap
+
+### Near-Term
+- **Convoy system** — Form convoys with other truckers for XP/pay bonuses and shared CB channel
+- **Seasonal events** — Holiday cargo (Christmas trees in December, fireworks in July) with bonus pay
+- **Truck customization** — Paint jobs, hood ornaments, and vanity items (cosmetic only)
+- **Trucker rivalries** — Challenge other drivers to race between cities, winner takes a pot
+- **Radio stations** — Tune in to regional music/talk while driving (flavor text variety)
+- **Black market cargo** — High-risk, high-pay illegal loads with DOT inspection consequences
+
+### Mid-Term
+- **Fuel price fluctuation** — Gas prices vary by region and time, rewarding route planning
+- **Company system** — Form trucking companies, shared garage, fleet leaderboard
+- **Cargo auctions** — Bid against other truckers for premium contracts at major hubs
+- **Truck breakdowns v2** — Tow truck service, roadside repair kits, AAA membership upgrade
+- **NPC trucker encounters** — Meet AI truckers on the road with trade/chat/race interactions
+
+### Expansion 1: O Canada
+- **30+ Canadian cities** from Vancouver to Halifax connected by the Trans-Canada Highway
+- Cross the border at ports of entry (Detroit-Windsor, Buffalo-Niagara, etc.)
+- Customs inspections with paperwork delays and contraband checks
+- Canadian weather: blizzards, black ice, moose crossings
+- New cargo types: lumber, maple syrup, oil sands equipment, hockey gear
+- Canadian-specific achievements: "True North", "Ice Road Trucker", "Border Hopper"
+- Bilingual road signs in Quebec (flavor text)
+
+### Expansion 2: South of the Border
+- **Mexico and Central America** — 20+ cities from Tijuana to Panama City
+- Border crossings with cartel encounter risk and bribe mechanics
+- New hazards: cartel roadblocks, corrupt checkpoints, jungle washouts
+- Cargo types: coffee, bananas, tequila, electronics (maquiladora), exotic animals
+- Vehicle restrictions: some roads require smaller trucks
+- Achievements: "Border Runner", "Pan-American", "Cartel Survivor", "Coffee Baron"
+
+### Expansion 3: South America
+- **15+ major cities** from Bogota to Buenos Aires
+- The Pan-American Highway and the Darien Gap (ferry crossing required)
+- Andes mountain passes with altitude sickness and rockslide events
+- Amazon basin routes with river ferry crossings and monsoon season
+- Cargo types: emeralds, cocaine (legal pharmaceutical grade), beef, lithium, copper
+- Achievements: "Andes Ascender", "Amazon Explorer", "Gaucho", "Continental Trucker"
+
 ## Architecture
 
 ```
