@@ -232,21 +232,21 @@ CARGO_TYPES = {
 # Rest areas / truck stops along major highways
 # These are NOT cities — they're intermediate stops for eating, sleeping, restrooms
 REST_AREAS = [
-    {"name": "Pilot Travel Center", "highway": "I-65", "between": ("louisville", "nashville"), "mile": 80},
-    {"name": "Love's Travel Stop", "highway": "I-10", "between": ("pensacola", "mobile"), "mile": 30},
-    {"name": "Flying J Truck Stop", "highway": "I-40", "between": ("little_rock", "oklahoma_city"), "mile": 170},
-    {"name": "TA Travel Center", "highway": "I-95", "between": ("richmond", "jacksonville"), "mile": 280},
-    {"name": "Petro Stopping Center", "highway": "I-80", "between": ("omaha", "denver"), "mile": 265},
-    {"name": "Pilot Flying J", "highway": "I-70", "between": ("st_louis", "kansas_city"), "mile": 125},
-    {"name": "Love's Country Store", "highway": "I-35", "between": ("oklahoma_city", "dallas"), "mile": 100},
-    {"name": "TA Express", "highway": "I-75", "between": ("cincinnati", "atlanta"), "mile": 230},
-    {"name": "Flying J Plaza", "highway": "I-90", "between": ("sioux_falls", "billings"), "mile": 310},
-    {"name": "Petro Iron Skillet", "highway": "I-10", "between": ("houston", "san_antonio"), "mile": 100},
-    {"name": "Pilot Truck Stop", "highway": "I-55", "between": ("st_louis", "memphis"), "mile": 140},
-    {"name": "Love's Travel Stop", "highway": "I-5", "between": ("sacramento", "portland"), "mile": 290},
-    {"name": "TA Truck Stop", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 315},
-    {"name": "Sapp Bros.", "highway": "I-80", "between": ("cheyenne", "salt_lake_city"), "mile": 220},
-    {"name": "Buc-ee's", "highway": "I-10", "between": ("new_orleans", "houston"), "mile": 175},
+    {"name": "Captain Travel Center", "highway": "I-65", "between": ("louisville", "nashville"), "mile": 80},
+    {"name": "Heart's Travel Stop", "highway": "I-10", "between": ("pensacola", "mobile"), "mile": 30},
+    {"name": "Soaring J Truck Stop", "highway": "I-40", "between": ("little_rock", "oklahoma_city"), "mile": 170},
+    {"name": "Road America Travel Center", "highway": "I-95", "between": ("richmond", "jacksonville"), "mile": 280},
+    {"name": "Nitro Stopping Center", "highway": "I-80", "between": ("omaha", "cheyenne"), "mile": 265},
+    {"name": "Captain Soaring J", "highway": "I-70", "between": ("st_louis", "kansas_city"), "mile": 125},
+    {"name": "Heart's Country Store", "highway": "I-35", "between": ("oklahoma_city", "dallas"), "mile": 100},
+    {"name": "Road America Express", "highway": "I-75", "between": ("cincinnati", "atlanta"), "mile": 230},
+    {"name": "Soaring J Plaza", "highway": "I-90", "between": ("sioux_falls", "billings"), "mile": 310},
+    {"name": "Nitro Iron Skillet", "highway": "I-10", "between": ("houston", "san_antonio"), "mile": 100},
+    {"name": "Captain Truck Stop", "highway": "I-55", "between": ("st_louis", "memphis"), "mile": 140},
+    {"name": "Heart's Travel Stop", "highway": "I-5", "between": ("sacramento", "portland"), "mile": 290},
+    {"name": "Road America Truck Stop", "highway": "I-20", "between": ("birmingham", "dallas"), "mile": 315},
+    {"name": "Trapp Bros.", "highway": "I-80", "between": ("cheyenne", "salt_lake_city"), "mile": 220},
+    {"name": "Big Tex Fuel Depot", "highway": "I-10", "between": ("new_orleans", "houston"), "mile": 175},
 ]
 
 
