@@ -57,7 +57,7 @@ def get_scores():
             "home_city": obj.db.home_city or "",
             "engine": eng_name,
             "trailer": trailer_name,
-            "achievements": obj.db.achievements or [],
+            "achievements": list(obj.db.achievements or []),
             "truck_health": obj.db.truck_health if obj.db.truck_health is not None else 100,
         })
 
