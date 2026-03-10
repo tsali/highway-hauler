@@ -164,7 +164,7 @@ class CmdCB(Command):
         # Broadcast to all connected truckers with CB
         from typeclasses.characters import Trucker
         for t in Trucker.objects.all():
-            if t.has_db_field("cb_level") and (t.db.cb_level or 0) > 0 and t.has_account:
+            if (t.db.cb_level or 0) > 0 and t.has_account:
                 t.msg(f"|y[CB] {handle}:|n {msg}")
 
 
