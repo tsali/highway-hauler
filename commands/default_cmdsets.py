@@ -7,7 +7,7 @@ from evennia.commands.default.cmdset_account import AccountCmdSet as BaseAccount
 from evennia.commands.default.cmdset_session import SessionCmdSet as BaseSessionCmdSet
 from evennia.commands.default.cmdset_unloggedin import UnloggedinCmdSet as BaseUnloggedinCmdSet
 
-from commands.driving import CmdDrive, CmdRefuel, CmdMap
+from commands.driving import CmdDrive, CmdRefuel, CmdStop, CmdMap
 from commands.contracts import CmdContracts, CmdAccept, CmdCargo, CmdDeliver
 from commands.trucker import (
     CmdStatus, CmdUpgrade, CmdCB, CmdWho, CmdScores, CmdTrivia, CmdTriviaAnswer,
@@ -27,6 +27,7 @@ class CharacterCmdSet(BaseCharacterCmdSet):
         # Driving
         self.add(CmdDrive())
         self.add(CmdRefuel())
+        self.add(CmdStop())
         self.add(CmdMap())
 
         # Contracts

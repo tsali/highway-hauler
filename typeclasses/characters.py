@@ -113,6 +113,10 @@ class Trucker(ObjectParent, DefaultCharacter):
         self.db.weigh_violations = 0
         self.db.last_lot_lizard = 0
         self.db.contract_bonus = 1.0
+        self.db.at_rest_stop = False
+        self.db.nearby_rest_stop = None
+        self.db.driving_miles_total = 0
+        self.db.driving_city_room = None
         # Trucker needs
         self.db.hunger = 0        # 0=full, 100=starving
         self.db.bladder = 0       # 0=empty, 100=desperate
@@ -169,8 +173,8 @@ class Trucker(ObjectParent, DefaultCharacter):
 
     @property
     def is_driving(self):
-        """Whether currently on the road."""
-        return self.db.driving_to is not None
+        """Whether currently on the road (not stopped at a rest area)."""
+        return self.db.driving_to is not None and not self.db.at_rest_stop
 
     def get_status_display(self):
         """Return a formatted status string."""

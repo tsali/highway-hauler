@@ -169,12 +169,24 @@ def start_driving_leg(caller, city_key, dest_key, dist, hwy, gps_route=None, gps
         caller.msg(f"|wFuel needed:|n ~{fuel_needed_display:.0f} gallons")
         caller.msg(f"|g{'=' * 50}|n\n")
 
-    # Announce to room
+    # Announce to room and move to highway
     if caller.location:
         caller.location.msg_contents(
             f"|c{caller.db.handle or caller.key}|n pulls out onto |y{hwy}|n heading for |w{dest_name}|n.",
             exclude=[caller],
         )
+
+    # Save the city room we're leaving from (for rest stop returns)
+    caller.db.driving_city_room = caller.location
+
+    # Move to highway room
+    from typeclasses.rooms import get_or_create_highway_room
+    hwy_room = get_or_create_highway_room()
+    caller.move_to(hwy_room, quiet=True, move_type="drive")
+
+    # Clear rest stop state
+    caller.db.nearby_rest_stop = None
+    caller.db.at_rest_stop = False
 
     # Start the driving script
     caller.scripts.add(DrivingScript)
@@ -229,6 +241,27 @@ class CmdDrive(Command):
 
         if caller.is_driving:
             caller.msg("|rYou're already on the road! Type |wdrive stop|r to cancel GPS routing.|n")
+            return
+
+        # Resume from rest stop
+        if caller.db.at_rest_stop and caller.db.driving_to:
+            if caller.db.mandatory_rest:
+                caller.msg("|rDOT regulations: You must sleep before driving again.|n")
+                caller.msg("|rType |wsleep|r to rest.|n")
+                return
+            # Resume driving
+            caller.db.at_rest_stop = False
+            caller.db.nearby_rest_stop = None
+            from typeclasses.rooms import get_or_create_highway_room
+            hwy_room = get_or_create_highway_room()
+            caller.move_to(hwy_room, quiet=True, move_type="drive")
+            dest_key = caller.db.driving_to
+            dest_name = CITIES.get(dest_key, {}).get("name", dest_key)
+            miles_left = caller.db.driving_miles_left or 0
+            hwy = caller.db.driving_highway or ""
+            caller.msg(f"|gBack on {hwy}. {miles_left:.0f} miles to {dest_name}.|n")
+            from typeclasses.scripts import DrivingScript
+            caller.scripts.add(DrivingScript)
             return
 
         if caller.db.mandatory_rest:
@@ -403,6 +436,77 @@ class CmdRefuel(Command):
         caller.msg(f"|wCost:|n ${cost:.2f}")
         caller.msg(f"|wTank:|n {caller.db.fuel:.1f}/{capacity} gallons")
         caller.msg(f"|wMoney:|n |g${caller.db.money:,}|n")
+
+
+class CmdStop(Command):
+    """
+    Pull over at a rest stop or the roadside.
+
+    Usage:
+        stop           - Pull over (at rest stop if nearby, otherwise roadside)
+        stop continue  - Get back on the road after stopping
+
+    When near a rest stop, you can refuel, eat, use the restroom, and sleep.
+    Type 'stop continue' or 'drive' to resume your trip.
+    """
+
+    key = "stop"
+    aliases = ["pull over", "pullover"]
+    locks = "cmd:all()"
+
+    def func(self):
+        caller = self.caller
+
+        arg = self.args.strip().lower() if self.args else ""
+
+        # Resume driving from a rest stop
+        if arg in ("continue", "resume", "go"):
+            if not caller.db.at_rest_stop:
+                caller.msg("|wYou're not at a rest stop.|n")
+                return
+            if not caller.db.driving_to:
+                caller.msg("|wYou don't have a destination. Type |ydrive <city>|w.|n")
+                return
+
+            # Move back to highway room and restart driving
+            caller.db.at_rest_stop = False
+            caller.db.nearby_rest_stop = None
+
+            from typeclasses.rooms import get_or_create_highway_room
+            hwy_room = get_or_create_highway_room()
+            caller.move_to(hwy_room, quiet=True, move_type="drive")
+
+            dest_key = caller.db.driving_to
+            dest_name = CITIES.get(dest_key, {}).get("name", dest_key)
+            miles_left = caller.db.driving_miles_left or 0
+            hwy = caller.db.driving_highway or ""
+            caller.msg(f"|gBack on {hwy}. {miles_left:.0f} miles to {dest_name}.|n")
+
+            from typeclasses.scripts import DrivingScript
+            caller.scripts.add(DrivingScript)
+            return
+
+        # Pull over
+        if not caller.is_driving:
+            caller.msg("|wYou're not driving.|n")
+            return
+
+        # Stop the driving script but keep driving state
+        for script in caller.scripts.all():
+            if script.key == "driving_script":
+                script.stop()
+
+        # Move to rest stop room
+        from typeclasses.rooms import get_or_create_rest_stop_room
+        rest_room = get_or_create_rest_stop_room()
+
+        rest_name = caller.db.nearby_rest_stop or "Roadside Shoulder"
+        rest_room.db.rest_stop_name = rest_name
+        rest_room.db.highway_name = caller.db.driving_highway or ""
+
+        caller.db.at_rest_stop = True
+        caller.move_to(rest_room, quiet=True)
+        caller.execute_cmd("look")
 
 
 class CmdMap(Command):

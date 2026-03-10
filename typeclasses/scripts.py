@@ -135,8 +135,11 @@ class DrivingScript(DefaultScript):
         total_miles = trucker.db.driving_miles_total or miles_left
         fuel_left = trucker.db.fuel
         dest_key = trucker.db.driving_to
+        from_key = trucker.db.driving_from
         from world.cities import CITIES
         dest_name = CITIES.get(dest_key, {}).get("name", dest_key)
+        dest_region = CITIES.get(dest_key, {}).get("region", "")
+        from_region = CITIES.get(from_key, {}).get("region", "")
         hwy = trucker.db.driving_highway or ""
         cur_speed = speed * weather_speed_mod
 
@@ -157,6 +160,15 @@ class DrivingScript(DefaultScript):
             f"{miles_left:.0f}mi | {cur_speed:.0f}mph | "
             f"F:{fuel_left:.0f}g{weather_icon}"
         )
+
+        # Scenery flavor text (every 3rd tick)
+        if random.random() < 0.33:
+            region = dest_region or from_region or "midwest"
+            from typeclasses.rooms import _get_scenery
+            trucker.msg(f"|x{_get_scenery(region, weather, hwy)}|n")
+
+        # Check for rest areas along this highway segment
+        self._check_rest_areas(trucker, miles_left, total_miles, hwy, from_key, dest_key)
 
     def _tick_needs(self, trucker):
         """Increase trucker needs each driving tick (10s = ~15 game minutes)."""
@@ -229,10 +241,48 @@ class DrivingScript(DefaultScript):
             ]
             trucker.msg(random.choice(msgs))
 
+    def _check_rest_areas(self, trucker, miles_left, total_miles, hwy, from_key, dest_key):
+        """Check if we're passing a rest area and announce it."""
+        from world.cities import REST_AREAS
+        miles_driven_on_leg = total_miles - miles_left
+
+        for rest in REST_AREAS:
+            # Match highway (strip I-40/I-17 etc)
+            rest_hwy = rest["highway"]
+            if rest_hwy not in hwy and hwy not in rest_hwy:
+                continue
+            # Match the segment (either direction)
+            a, b = rest["between"]
+            if not ((a == from_key and b == dest_key) or (b == from_key and a == dest_key)):
+                continue
+            # Check if we're at the rest area mile marker (within this tick's range)
+            rest_mile = rest["mile"]
+            # If driving from b->a, flip the mile marker
+            if b == from_key:
+                rest_mile = total_miles - rest_mile
+
+            prev_miles = miles_driven_on_leg - (trucker.speed * (GAME_MINUTES_PER_TICK / 60.0))
+            if prev_miles <= rest_mile <= miles_driven_on_leg:
+                # Just passed it — announce
+                trucker.db.nearby_rest_stop = rest["name"]
+                trucker.msg(f"\n|y*** {rest['name']} — NEXT EXIT ***|n")
+                trucker.msg("|wType |ystop|w to pull in for gas, food, and restrooms.|n")
+                return
+
+        # Clear if we've passed it
+        trucker.db.nearby_rest_stop = None
+
     def _force_stop(self, trucker):
         """Force the trucker to pull over (DOT hours violation)."""
         trucker.msg("|rYou pull onto the shoulder and put it in park.|n")
         trucker.msg("|rType |wsleep|r to rest at the roadside.|n")
+
+        # Move to rest stop room if available, otherwise stay on highway
+        from typeclasses.rooms import get_or_create_rest_stop_room
+        rest_room = get_or_create_rest_stop_room()
+        rest_room.db.rest_stop_name = "Roadside Shoulder"
+        rest_room.db.highway_name = trucker.db.driving_highway or ""
+        trucker.move_to(rest_room, quiet=True)
 
         # Clear driving state but don't move to a city
         trucker.db.driving_to = None
