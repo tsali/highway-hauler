@@ -1,5 +1,14 @@
 # Changelog — Highway Hauler
 
+## v0.3.1a — 2026-03-10
+
+### Added
+- **Trucker profile pages**: click any handle on the hauler website to see detailed stats and achievements
+  - Stats: miles, deliveries, on-time %, earnings, reputation, biggest haul
+  - Truck info: engine, trailer, health bar
+  - Achievement badges: 30 badges shown as earned (gold border + icon) or locked
+- Clickable handles on leaderboard and trucker positions on hauler.html
+
 ## v0.3a — 2026-03-10
 
 ### Added

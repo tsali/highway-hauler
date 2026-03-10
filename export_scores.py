@@ -39,6 +39,11 @@ def get_scores():
         handle = obj.db.handle or obj.key
         online = bool(obj.sessions.count())
 
+        # Truck upgrade names
+        from typeclasses.characters import TRUCK_UPGRADES, ACHIEVEMENTS
+        eng_name = TRUCK_UPGRADES["engine"]["levels"][obj.db.engine_level or 0]["name"]
+        trailer_name = TRUCK_UPGRADES["trailer"]["levels"][obj.db.trailer_level or 0]["name"]
+
         truckers.append({
             "handle": handle,
             "miles": obj.db.miles_driven or 0,
@@ -48,6 +53,12 @@ def get_scores():
             "total_income": obj.db.total_income or 0,
             "biggest_haul_weight": obj.db.biggest_haul_weight or 0,
             "biggest_haul_income": obj.db.biggest_haul_income or 0,
+            "reputation": obj.db.reputation or 0,
+            "home_city": obj.db.home_city or "",
+            "engine": eng_name,
+            "trailer": trailer_name,
+            "achievements": obj.db.achievements or [],
+            "truck_health": obj.db.truck_health if obj.db.truck_health is not None else 100,
         })
 
         # Build live position data
