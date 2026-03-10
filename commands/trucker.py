@@ -111,13 +111,28 @@ class CmdUpgrade(Command):
             caller.msg(f"|rNot enough money! Need ${cost:,}, you have ${caller.db.money:,}.|n")
             return
 
-        caller.db.money = (caller.db.money or 0) - cost
-        setattr(caller.db, level_attr, current + 1)
-
-        caller.msg(f"|g*** UPGRADED: {TRUCK_UPGRADES[utype]['name']} ***|n")
-        caller.msg(f"|wNew:|n {next_level['name']}")
-        caller.msg(f"|wCost:|n ${cost:,}")
-        caller.msg(f"|wMoney remaining:|n |g${caller.db.money:,}|n")
+        # Confirmation step
+        pending = getattr(caller.ndb, 'pending_upgrade', None)
+        if pending and pending.get('utype') == utype:
+            # Already confirmed — buy it
+            caller.ndb.pending_upgrade = None
+            caller.db.money = (caller.db.money or 0) - cost
+            setattr(caller.db, level_attr, current + 1)
+            caller.msg(f"|g*** UPGRADED: {TRUCK_UPGRADES[utype]['name']} ***|n")
+            caller.msg(f"|wNew:|n {next_level['name']}")
+            caller.msg(f"|wCost:|n ${cost:,}")
+            caller.msg(f"|wMoney remaining:|n |g${caller.db.money:,}|n")
+        else:
+            # Show confirmation prompt
+            caller.ndb.pending_upgrade = {'utype': utype}
+            current_name = levels[current]['name']
+            caller.msg(f"|y--- CONFIRM UPGRADE ---")
+            caller.msg(f"|wUpgrade:|n {TRUCK_UPGRADES[utype]['name']}")
+            caller.msg(f"|wCurrent:|n {current_name}")
+            caller.msg(f"|wNew:|n {next_level['name']}")
+            caller.msg(f"|wCost:|n |r${cost:,}|n")
+            caller.msg(f"|wYour money:|n |g${caller.db.money:,}|n -> |y${caller.db.money - cost:,}|n after")
+            caller.msg(f"|wType |yupgrade {utype}|w again to confirm, or anything else to cancel.|n")
 
 
 class CmdCB(Command):

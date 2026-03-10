@@ -145,6 +145,10 @@ class CityRoom(Room):
             else:
                 lines.append("")
                 lines.append("|wType |ycontracts|n for cargo. |ymap|n to plan routes. |ydrive <city>|n to go.|n")
+
+            # Commands hint
+            lines.append("")
+            lines.append("|wCommands:|n |yeat|n |yrestroom|n |ysleep|n |yrefuel|n |yupgrade|n |ystatus|n |ycargo|n |ycb|n")
         return "\n".join(lines)
 
 
