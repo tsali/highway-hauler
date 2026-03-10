@@ -8,27 +8,85 @@ Inspired by *Cross Country USA* (1985, Didatech Software).
 - Telnet: `bbs.cultofjames.org` port `2023`
 - TLS: `bbs.cultofjames.org` port `992`
 - From the BBS main menu, press **D** for Doors, then **H** for Highway Hauler
+- Live map & scores: [bbs.cultofjames.org/hauler.html](https://bbs.cultofjames.org/hauler.html)
 
 ## Overview
 
-Players start as rookie truckers with a beat-up rig and $500. Pick up cargo contracts, plan routes across a network of US cities connected by real interstate highways, manage fuel and time, and earn money to upgrade your truck and unlock longer hauls.
+Players start as rookie truckers with a beat-up rig and $500. Pick up cargo contracts, plan routes across a network of 50 US cities connected by real interstate highways, manage fuel and time, deal with the realities of life on the road, and earn money to upgrade your truck and unlock longer hauls.
 
 ## Game Systems
 
 | System | Description |
 |--------|-------------|
-| **Contracts** | Pick up cargo at city terminals — each has origin, destination, cargo type, pay, and deadline |
-| **Routing** | Navigate a network of ~50 US cities connected by interstate highways with real distances |
-| **Driving** | Travel between cities in real-time (accelerated). Speed, fuel consumption, random events |
-| **Fuel** | Manage your tank. Run dry on the highway and you're stuck until a tow |
-| **Truck Upgrades** | Better engine (speed), bigger tank (range), larger trailer (cargo capacity), CB radio |
-| **Economy** | Dynamic cargo prices. Supply/demand shifts. Bonus pay for on-time delivery |
-| **Multiplayer** | See other drivers at stops and on highways. Compete for the same contracts |
-| **CB Radio** | Global trucker chat channel. Warn about speed traps, share tips |
-| **Weather** | Random weather events affect speed and fuel consumption |
-| **Weigh Stations** | Random inspections. Overweight = fines. Keep your paperwork straight |
-| **Trivia** | Geography trivia at rest stops for bonus cash |
-| **Leaderboard** | Miles driven, deliveries completed, money earned, on-time percentage |
+| **Contracts** | Pick up cargo at city terminals — each has origin, destination, cargo type, weight, pay, urgency, and deadline |
+| **Routing** | Navigate 50 US cities connected by interstate highways with real distances |
+| **Driving** | Travel between cities in real-time (accelerated). Speed, fuel, weather, random events |
+| **Speed Control** | Set your speed from 10 mph to your engine's max. Posted limit is 65 mph — go faster at your own risk |
+| **Fuel** | Manage your tank. Heavier loads and bad weather burn more fuel. Run dry and you're paying for a tow |
+| **Truck Upgrades** | 6 upgrade categories with multiple tiers each (see below) |
+| **Economy** | Cargo pay scales with distance, weight, and urgency. On-time bonus, late penalty |
+| **Trucker Needs** | Hunger, bladder, and fatigue build while driving. Ignore them at your peril |
+| **Weather** | Dynamic regional weather: clear, rain, snow, fog, storm. Affects speed and fuel consumption |
+| **Cops & Radar** | Speed traps, fatigue stops, routine patrols. Radar detector warns you before they see you |
+| **Weigh Stations** | Random inspections with detailed weight checks. Scaled fines for overweight. Repeat offenders flagged |
+| **Rest Areas** | 95 truck stops along major highways. Refuel, eat, sleep, use restroom |
+| **Encounters** | Lot lizards at truck stops, highway gangs on desert stretches |
+| **Message Boards** | Each city has its own board. NPC truckers leave tips, warnings, and CB chatter |
+| **GPS Navigation** | Auto-route planning with reliability based on upgrade level |
+| **DOT Compliance** | Hours-of-service tracking. Drive too long and DOT shuts you down |
+| **Multiplayer** | See other drivers at stops and on highways. CB radio chat. Compete on leaderboards |
+| **Live Map** | Web page with real-time trucker positions on a Leaflet/CartoDB map |
+| **Leaderboard** | Miles driven, deliveries, money earned, on-time %, biggest haul |
+
+## Truck Upgrades
+
+| Category | Levels | Effect |
+|----------|--------|--------|
+| **Engine** | Stock 4-Cyl (45 mph) through Supercharged V8 (85 mph) | Top speed |
+| **Fuel Tank** | 50 gal through 200 gal Transcontinental | Range between fill-ups |
+| **Trailer** | 20ft Flatbed (15,000 lbs) through 53ft Double (60,000 lbs) | Cargo capacity |
+| **CB Radio** | None or Cobra 29 LTD | Global trucker chat |
+| **GPS** | Paper Map through Trucker's GPS Pro (95% reliable) | Auto-routing |
+| **Radar Detector** | None through Escort MAX 360c (92% detection) | Cop avoidance |
+
+## Commands
+
+### Navigation & Driving
+| Command | Description |
+|---------|-------------|
+| `drive <city>` | Start driving to a connected city |
+| `stop` | Pull over at a rest area or the shoulder |
+| `speed` / `speed <mph>` / `speed max` | View or set driving speed (limit: 65 mph) |
+| `map` / `map <region>` / `map national` | ASCII interstate map |
+| `look` | See current location, services, other drivers |
+
+### Cargo & Money
+| Command | Description |
+|---------|-------------|
+| `contracts` | View available cargo contracts at current terminal |
+| `accept <#>` | Accept a contract |
+| `cargo` | View your current cargo manifest |
+| `deliver` | Deliver cargo at destination city |
+| `refuel` | Fill up at a gas station |
+| `upgrade` / `upgrade <type>` | View or buy truck upgrades (engine, tank, trailer, cb, gps, radar) |
+
+### Trucker Life
+| Command | Description |
+|---------|-------------|
+| `eat` | Eat at a diner (reduces hunger) |
+| `restroom` | Use the restroom (reduces bladder, cleans up if soiled) |
+| `sleep` / `bunks` | Sleep at bunks (reduces fatigue, resets driving hours) |
+| `status` | Full truck and trucker status display |
+| `board` / `board erase <#>` | Read or manage city message board |
+| `post <message>` | Post to the city message board |
+
+### Social
+| Command | Description |
+|---------|-------------|
+| `cb <message>` | CB radio — broadcast to all drivers |
+| `who` | See all online drivers and their locations |
+| `scores` | Leaderboard |
+| `trivia` | Geography trivia for bonus cash (at cities) |
 
 ## Architecture
 
@@ -39,34 +97,15 @@ BBS User -> Mystic BBS (telnet:23) -> rlogin bridge (port 4043) -> Evennia (port
 - **Framework**: Evennia 5.0.1 (Python 3.11, Django, Twisted)
 - **Data storage**: Evennia AttributeProperty (no custom Django models)
 - **Instance**: /opt/evennia/hauler/
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `look` | See current location, other drivers, available services |
-| `contracts` | View available cargo contracts at current terminal |
-| `accept <#>` | Accept a contract |
-| `cargo` | View your current cargo manifest |
-| `drive <city>` | Start driving to a connected city |
-| `stop` | Pull over (if on highway) |
-| `refuel` | Fill up at a gas station |
-| `status` | Your truck stats, fuel, money, reputation |
-| `upgrade` | View/buy truck upgrades at a truck stop |
-| `map` | ASCII map of the interstate network |
-| `cb <message>` | CB radio — broadcast to all drivers |
-| `who` | See all online drivers and their locations |
-| `scores` | Leaderboard |
-| `trivia` | Answer a geography question for bonus cash (at rest stops) |
-| `deliver` | Deliver cargo at destination terminal |
-| `help` | Help topics |
+- **Live map**: Static HTML + Leaflet.js, served from bbs.cultofjames.org/hauler.html
+- **Score pipeline**: export_scores.py (Evennia ORM -> JSON) -> bbs-scores.py -> Synology web server
 
 ## Development
 
 ```bash
 cd /home/tsali/projects/highway-hauler
 # Edit typeclasses/, commands/, world/
-./deploy.sh   # Push to live instance
+./deploy.sh   # Rsync to live instance + evennia reload
 ```
 
 ## Tech Stack
@@ -74,4 +113,5 @@ cd /home/tsali/projects/highway-hauler
 - Python 3.11
 - Evennia 5.0.1 (Twisted + Django)
 - Mystic BBS rlogin bridge
+- Leaflet.js + CartoDB dark tiles (live map)
 - systemd service management
