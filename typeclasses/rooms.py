@@ -125,8 +125,30 @@ class CityRoom(Room):
             dest_state = dest_data.get("state", "")
             lines.append(f"  |y{hwy}|n -> |w{dest_name}, {dest_state}|n ({dist} mi)")
 
-        lines.append("")
-        lines.append("|wType |ycontracts|n to see available cargo, |ydrive <city>|n to hit the road.|n")
+        # Cargo reminder for looker
+        import time as _time
+        from typeclasses.characters import Trucker
+        if isinstance(looker, Trucker):
+            cargo = looker.db.current_cargo or []
+            if cargo:
+                lines.append("")
+                lines.append("|y--- YOUR CARGO ---|n")
+                for c in cargo:
+                    mins_left = max(0, (c.get("deadline", 0) - _time.time()) / 60)
+                    time_str = "|rOVERDUE|n" if mins_left <= 0 else f"{mins_left:.0f}m left"
+                    lines.append(
+                        f"  |w{c.get('cargo_name', '???')}|n -> "
+                        f"|c{c.get('dest_name', '???')}|n | "
+                        f"|g${c.get('pay', 0):,}|n | {time_str}"
+                    )
+                lines.append("")
+                lines.append("|wType |ydrive <city>|n to deliver, |ycargo|n for full manifest.|n")
+            else:
+                lines.append("")
+                lines.append("|wType |ycontracts|n to find cargo, |ydrive <city>|n to hit the road.|n")
+        else:
+            lines.append("")
+            lines.append("|wType |ycontracts|n to see available cargo, |ydrive <city>|n to hit the road.|n")
         return "\n".join(lines)
 
 

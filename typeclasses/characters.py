@@ -267,6 +267,20 @@ class Trucker(ObjectParent, DefaultCharacter):
         else:
             self.msg(f"|wWelcome back, {self.db.handle or self.key}!|n")
             self.msg(self.get_status_display())
+            # Cargo reminder on login
+            cargo = self.db.current_cargo or []
+            if cargo:
+                import time as _time
+                self.msg("")
+                self.msg("|y--- ACTIVE CARGO ---|n")
+                for c in cargo:
+                    mins_left = max(0, (c.get("deadline", 0) - _time.time()) / 60)
+                    time_str = "|rOVERDUE|n" if mins_left <= 0 else f"{mins_left:.0f}m left"
+                    self.msg(
+                        f"  |w{c.get('cargo_name', '???')}|n -> "
+                        f"|c{c.get('dest_name', '???')}|n | "
+                        f"|g${c.get('pay', 0):,}|n | {time_str}"
+                    )
             if self.location:
                 self.msg("")
                 self.execute_cmd("look")
