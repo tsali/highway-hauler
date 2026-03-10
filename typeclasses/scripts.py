@@ -130,17 +130,33 @@ class DrivingScript(DefaultScript):
             self._arrive(trucker)
             return
 
-        # Periodic update (every 3rd tick roughly)
-        if random.random() < 0.33:
-            miles_left = trucker.db.driving_miles_left
-            fuel_left = trucker.db.fuel
-            trucker.msg(
-                f"|w[{trucker.db.driving_highway}]|n "
-                f"{miles_left:.0f} mi to {trucker.db.driving_to} | "
-                f"Fuel: {fuel_left:.0f} gal | "
-                f"{speed * weather_speed_mod:.0f} mph"
-                f"{f' ({weather})' if weather != 'clear' else ''}"
-            )
+        # Driving HUD — show every tick
+        miles_left = trucker.db.driving_miles_left
+        total_miles = trucker.db.driving_miles_total or miles_left
+        fuel_left = trucker.db.fuel
+        dest_key = trucker.db.driving_to
+        from world.cities import CITIES
+        dest_name = CITIES.get(dest_key, {}).get("name", dest_key)
+        hwy = trucker.db.driving_highway or ""
+        cur_speed = speed * weather_speed_mod
+
+        # Progress bar (20 chars wide)
+        if total_miles > 0:
+            pct = max(0, min(1.0, 1.0 - (miles_left / total_miles)))
+        else:
+            pct = 0
+        filled = int(pct * 20)
+        truck_pos = min(19, filled)
+        bar = "=" * truck_pos + "|w>|n" + "-" * (19 - truck_pos)
+
+        # Weather icon
+        weather_icon = {"clear": "", "rain": " |b~rain~|n", "snow": " |W*snow*|n", "fog": " |xfog|n"}.get(weather, "")
+
+        trucker.msg(
+            f"|y{hwy}|n [{bar}] |c{dest_name}|n "
+            f"{miles_left:.0f}mi | {cur_speed:.0f}mph | "
+            f"F:{fuel_left:.0f}g{weather_icon}"
+        )
 
     def _tick_needs(self, trucker):
         """Increase trucker needs each driving tick (10s = ~15 game minutes)."""

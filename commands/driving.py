@@ -140,6 +140,7 @@ def start_driving_leg(caller, city_key, dest_key, dist, hwy, gps_route=None, gps
     caller.db.driving_to = dest_key
     caller.db.driving_from = city_key
     caller.db.driving_miles_left = dist
+    caller.db.driving_miles_total = dist
     caller.db.driving_highway = hwy
     caller.db.current_weather = caller.db.current_weather or "clear"
     caller.db.gps_route = gps_route or []
@@ -418,41 +419,27 @@ class CmdMap(Command):
     def func(self):
         caller = self.caller
 
-        # 55-city ASCII interstate map + corridor reference
+        # Compact 55-city ASCII map with integrated corridor labels
         lines = [
-            "|w" + "=" * 78 + "|n",
-            "|w  HIGHWAY HAULER — INTERSTATE MAP|n",
-            "|w" + "=" * 78 + "|n",
-            "",
-            "|w  SEA-SPO        BIL          MIN-MIL                 BUF--BOS|n",
-            "|w   |    \\         |             |   \\                   |     ||n",
-            "|w  POR   BOI       |            SXF  CHI--DET          PIT   NYC|n",
-            "|w   |     |        |             |    |    |             |     ||n",
-            "|w  SAC  SLC------CHY            DSM  IND   \\       COL-CLE   PHL|n",
-            "|w   |    |         |             | /   |    |       |    |     ||n",
-            "|w  SFO   |        DEN          OMA   LOU--CIN      |   RIC    ||n",
-            "|w        |         |             |  /  |    \\       |    |     ||n",
-            "|w       LV        ABQ           KC STL NAS  \\     CHA   |     ||n",
-            "|w        |       / |             |  |   |    ATL    |    |     ||n",
-            "|w      PHX    TUC  ELP         WIC MEM BHM  / \\   JAX  TLH   ||n",
-            "|w       |      |    |            |   |   | /   |    |    |     ||n",
-            "|w      LA      |    |          OKC  LR  MGM    |   PNS   |    ||n",
-            "|w       |      |    |            |   |   |     |    |    |    ||n",
-            "|w      SD      +----+     SAT--DAL  NOR MOB---+----+    |   MIA|n",
-            "|w                          |    |    |                   |     ||n",
-            "|w                          +--HOU---+                   +-----+|n",
-            "",
-            "|c--- KEY CORRIDORS ---|n",
-            "|yI-10|n JAX-TLH-PNS-MOB-NOR-HOU-SAT-ELP-TUC-PHX-LA  |w(E-W South)|n",
-            "|yI-65|n CHI-IND-LOU-NAS-BHM-MGM-MOB                  |w(N-S Spine)|n",
-            "|yI-35|n MIN-DSM-KC-WIC-OKC-DAL-SAT                   |w(N-S Plains)|n",
-            "|yI-95|n BOS-NYC-PHL-RIC-JAX-MIA                      |w(East Coast)|n",
-            "|yI-70|n PIT-COL-IND-STL-KC-DEN                       |w(E-W Mid)|n",
-            "|yI-80|n ..OMA-CHY-SLC-SAC-SFO  |yI-90|n BOS-BUF-CLE..SEA  |w(E-W)|n",
-            "|yI-55|n CHI-STL-MEM-NOR  |yI-75|n DET-CIN-ATL-JAX     |w(N-S)|n",
-            "|yI-64|n RIC-LOU-STL  |yI-71|n CLE-COL-CIN-LOU  |yI-29|n SXF-OMA-KC|n",
-            "",
-            "|wUse |ymap|w to plan your route. Type |ydrive <city>|w to travel.|n",
-            "|wType |ycontracts|w to find cargo for your next haul.|n",
+            "|w=== INTERSTATE MAP ===|n",
+            "|w SEA-SPO       BIL         MIN-MIL              BUF--BOS|n",
+            "|w  |    \\        |            |   \\                |     ||n",
+            "|w POR   BOI      |           SXF  CHI--DET       PIT   NYC|n",
+            "|w  |     |       |            |    |    |          |     ||n",
+            "|w SAC  SLC-----CHY           DSM  IND   \\    COL-CLE   PHL|n",
+            "|w  |    |        |            |/   |    |     |    |     ||n",
+            "|w SFO   |       DEN          OMA  LOU--CIN   |   RIC    ||n",
+            "|w       |        |            | /  |    \\     |    |     ||n",
+            "|w      LV       ABQ          KC STL NAS  \\  CHA   |     ||n",
+            "|w       |      / |            |  |   |   ATL  |    |     ||n",
+            "|w     PHX   TUC  ELP        WIC MEM BHM / \\ JAX  TLH   ||n",
+            "|w      |     |    |           |   |  MGM   |   PNS  |    ||n",
+            "|w     LA     |    |         OKC  LR  |    |    |    |   MIA|n",
+            "|w      |     +----+    SAT-DAL  NOR MOB--+----+    +----+|n",
+            "|w     SD               |   |    |                        |n",
+            "|w                      +-HOU---+                         |n",
+            "|yI-65|w CHI-IND-LOU-NAS-BHM-MGM-MOB |yI-10|w JAX..MOB..HOU..LA|n",
+            "|yI-35|w MIN-DSM-KC-WIC-OKC-DAL-SAT  |yI-95|w BOS-NYC..RIC-MIA|n",
+            "|wType |ydrive <city>|w to go. |ycontracts|w for cargo.|n",
         ]
         caller.msg("\n".join(lines))

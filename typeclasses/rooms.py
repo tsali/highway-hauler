@@ -68,6 +68,54 @@ class CityRoom(Room):
         self.db.city_key = ""
         self.db.city_data = {}
 
+    def return_appearance(self, looker, **kwargs):
+        """If looker is driving, show road status instead of city."""
+        from typeclasses.characters import Trucker
+        if isinstance(looker, Trucker) and looker.is_driving:
+            return self._driving_appearance(looker)
+        return super().return_appearance(looker, **kwargs)
+
+    def _driving_appearance(self, trucker):
+        """Show on-the-road status instead of city room."""
+        import time as _time
+        from world.cities import CITIES
+
+        dest_key = trucker.db.driving_to or ""
+        from_key = trucker.db.driving_from or ""
+        dest_name = CITIES.get(dest_key, {}).get("name", dest_key)
+        from_name = CITIES.get(from_key, {}).get("name", from_key)
+        hwy = trucker.db.driving_highway or ""
+        miles_left = trucker.db.driving_miles_left or 0
+        total = trucker.db.driving_miles_total or miles_left
+        fuel = trucker.db.fuel or 0
+        spd = trucker.speed
+        weather = trucker.db.current_weather or "clear"
+
+        pct = max(0, min(1.0, 1.0 - (miles_left / total))) if total > 0 else 0
+        filled = int(pct * 30)
+        bar = "|g" + "=" * filled + "|w>|n" + "-" * (30 - filled)
+
+        lines = [
+            f"|y=== ON THE ROAD: {hwy} ===|n",
+            f"|w{from_name}|n [{bar}] |c{dest_name}|n",
+            f"|wMiles left:|n {miles_left:.0f}/{total:.0f}  |wSpeed:|n {spd} mph  |wWeather:|n {weather}",
+            f"|wFuel:|n {fuel:.0f} gal  |wHours driving:|n {trucker.db.hours_driving or 0:.1f}/16",
+        ]
+
+        # Show cargo
+        cargo = trucker.db.current_cargo or []
+        if cargo:
+            lines.append("")
+            for c in cargo:
+                mins_left = max(0, (c.get("deadline", 0) - _time.time()) / 60)
+                time_str = "|rOVERDUE|n" if mins_left <= 0 else f"{mins_left:.0f}m"
+                dest = "|g>>> HERE <<<|n" if c.get("destination") == dest_key else f"|c{c.get('dest_name', '???')}|n"
+                lines.append(f"  |w{c.get('cargo_name', '???')}|n -> {dest} | |g${c.get('pay', 0):,}|n | {time_str}")
+
+        lines.append("")
+        lines.append("|wType |ydrive stop|n to cancel GPS route. |ystatus|n for full info.|n")
+        return "\n".join(lines)
+
     def get_display_desc(self, looker, **kwargs):
         """Show city description with services."""
         data = self.db.city_data or {}
@@ -132,7 +180,7 @@ class CityRoom(Room):
             cargo = looker.db.current_cargo or []
             if cargo:
                 lines.append("")
-                lines.append("|y--- YOUR CARGO ---|n")
+                lines.append("|y*** YOUR CARGO ***|n")
                 for c in cargo:
                     mins_left = max(0, (c.get("deadline", 0) - _time.time()) / 60)
                     time_str = "|rOVERDUE|n" if mins_left <= 0 else f"{mins_left:.0f}m left"
@@ -141,14 +189,10 @@ class CityRoom(Room):
                         f"|c{c.get('dest_name', '???')}|n | "
                         f"|g${c.get('pay', 0):,}|n | {time_str}"
                     )
-                lines.append("")
-                lines.append("|wType |ydrive <city>|n to deliver, |ycargo|n for full manifest.|n")
+                lines.append("|wType |ydrive <city>|n to deliver. |ymap|n to plan route.|n")
             else:
                 lines.append("")
-                lines.append("|wType |ycontracts|n to find cargo, |ydrive <city>|n to hit the road.|n")
-        else:
-            lines.append("")
-            lines.append("|wType |ycontracts|n to see available cargo, |ydrive <city>|n to hit the road.|n")
+                lines.append("|wType |ycontracts|n for cargo. |ymap|n to plan routes. |ydrive <city>|n to go.|n")
         return "\n".join(lines)
 
 
