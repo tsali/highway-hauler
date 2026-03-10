@@ -115,7 +115,7 @@ HIGHWAYS = [
     ("salt_lake_city", "sacramento", 585, "I-80"),
     ("sacramento", "san_francisco", 87, "I-80"),
     ("omaha", "des_moines", 140, "I-80"),
-    ("omaha", "denver", 530, "I-80"),
+    ("omaha", "cheyenne", 490, "I-80"),
 
     # I-84 Corridor (SLC to Portland)
     ("salt_lake_city", "boise", 340, "I-84"),
@@ -191,8 +191,8 @@ HIGHWAYS = [
     ("atlanta", "birmingham", 150, "I-20"),
     ("birmingham", "dallas", 630, "I-20"),
 
-    # I-24 (Nashville to Atlanta)
-    ("nashville", "atlanta", 250, "I-24"),
+    # I-24/I-75 (Nashville to Atlanta via Chattanooga)
+    ("nashville", "atlanta", 250, "I-24/I-75"),
 
     # I-15 Corridor (San Diego to Montana via Vegas/SLC)
     ("san_diego", "los_angeles", 120, "I-5/I-15"),
@@ -208,6 +208,7 @@ HIGHWAYS = [
     ("cleveland", "pittsburgh", 130, "I-76"),
     ("buffalo", "pittsburgh", 220, "I-79"),
     ("dallas", "houston", 240, "I-45"),
+    ("sioux_falls", "omaha", 175, "I-29"),
     ("omaha", "kansas_city", 185, "I-29"),
     ("phoenix", "las_vegas", 300, "US-93"),
 ]
